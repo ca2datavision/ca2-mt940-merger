@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { FileText, Github, Mail, Upload, X, Download, Eye } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { PreviewModal } from './components/PreviewModal';
+import { CSVPreview } from './components/CSVPreview';
 import { ShareMenu } from './components/ShareMenu';
 import './i18n';
 
 const App = observer(() => {
   const { t } = useTranslation();
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    event.preventDefault();
     const files = event.target.files;
     if (!files) return;
 
@@ -21,9 +23,27 @@ const App = observer(() => {
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  };
+  }, []);
 
-  const downloadCSV = () => {
+  const handleDrop = useCallback(async (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    const files = event.dataTransfer.files;
+    if (!files) return;
+
+    try {
+      for (const file of Array.from(files)) {
+        await fileStore.addFile(file);
+      }
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to process file');
+    }
+  }, []);
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+  }, []);
+
+  const downloadCSV = useCallback(() => {
     const rows = fileStore.convertToCSV();
     const headers = [
       'numar cont', 'data procesarii', 'suma', 'valuta',
@@ -43,7 +63,7 @@ const App = observer(() => {
     link.href = URL.createObjectURL(blob);
     link.download = 'converted_mt940.csv';
     link.click();
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,6 +85,8 @@ const App = observer(() => {
         <div className="mt-8">
           <label
             htmlFor="file-upload"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
             className="relative block w-full p-12 text-center border-2 border-gray-300 border-dashed rounded-lg hover:border-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 cursor-pointer"
           >
             <Upload className="mx-auto h-12 w-12 text-gray-400" />
@@ -75,6 +97,7 @@ const App = observer(() => {
               id="file-upload"
               type="file"
               multiple
+              onClick={(e) => (e.target as HTMLInputElement).value = ''}
               accept=".sta,.mt940,.mt,.txt"
               className="hidden"
               onChange={handleFileUpload}
@@ -119,7 +142,14 @@ const App = observer(() => {
             </div>
 
             {/* Download Button */}
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex justify-end space-x-4">
+              <button
+                onClick={() => fileStore.setShowCSVPreview(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview CSV
+              </button>
               <button
                 onClick={downloadCSV}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -133,6 +163,9 @@ const App = observer(() => {
 
         {/* Preview Modal */}
         {fileStore.selectedFile && <PreviewModal />}
+
+        {/* CSV Preview Modal */}
+        {fileStore.showCSVPreview && <CSVPreview />}
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">

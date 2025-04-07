@@ -8,10 +8,20 @@ export const PreviewModal = observer(() => {
   const { t } = useTranslation();
   const file = fileStore.selectedFile;
 
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '-';
+    try {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}.${month}.${year}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   if (!file?.parsed) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-hidden">
       <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] flex flex-col">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-800">{file.name}</h2>
@@ -31,11 +41,7 @@ export const PreviewModal = observer(() => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Account</p>
-                    <p className="font-medium">{statement.accountIdentification || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Currency</p>
-                    <p className="font-medium">{statement.openingBalance?.currency || '-'}</p>
+                    <p className="font-medium">{statement.accountId || '-'}</p>
                   </div>
                 </div>
               </div>
@@ -46,6 +52,7 @@ export const PreviewModal = observer(() => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
@@ -55,24 +62,27 @@ export const PreviewModal = observer(() => {
                     {statement.transactions.map((transaction: any, index: number) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.date}
+                          {formatDate(transaction.entryDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {`${transaction.amount.amount} ${transaction.amount.currency}`}
+                          {transaction.amount}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {transaction.currency || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {transaction.transactionType}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="max-w-md break-words">
-                            {transaction.description}
-                            {transaction.details && (
-                              <span className="block text-gray-500 mt-1">{transaction.details}</span>
+                            {transaction.extraDetails?.name || '-'}
+                            {transaction.description && (
+                              <span className="block text-gray-500 mt-1">{transaction.description}</span>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.balance?.amount}
+                          {transaction.balance?.amount || '-'}
                         </td>
                       </tr>
                     ))}
