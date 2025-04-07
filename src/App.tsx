@@ -1,9 +1,10 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { FileText, Share2, Github, Mail, Upload, X, Download, Eye } from 'lucide-react';
+import { FileText, Github, Mail, Upload, X, Download, Eye } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { PreviewModal } from './components/PreviewModal';
+import { ShareMenu } from './components/ShareMenu';
 import './i18n';
 
 const App = observer(() => {
@@ -20,17 +21,6 @@ const App = observer(() => {
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  };
-
-  const handleShare = () => {
-    navigator.share({
-      title: t('appTitle'),
-      url: window.location.href
-    }).catch(() => {
-      // Fallback to copying URL
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
-    });
   };
 
   const downloadCSV = () => {
@@ -64,13 +54,7 @@ const App = observer(() => {
               <FileText className="h-8 w-8 text-indigo-600" />
               {t('appTitle')}
             </h1>
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </button>
+            <ShareMenu />
           </div>
           <p className="mt-2 text-sm text-gray-600">{t('privacy')}</p>
         </div>
@@ -155,7 +139,7 @@ const App = observer(() => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-4">
               <a
-                href="https://github.com/archeus/mt940-merger"
+                href="https://github.com/ca2datavision/ca2-mt940-merger"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-500"
