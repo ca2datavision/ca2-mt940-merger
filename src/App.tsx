@@ -1,15 +1,26 @@
 import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { FileText, Github, Mail, Upload, X, Download, Eye } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
-import { ShareMenu } from './components/ShareMenu';
+import { LanguageSelector } from './components/LanguageSelector';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import './i18n';
 
 const App = observer(() => {
   const { t } = useTranslation();
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = window.location.href;
+  const shareLinks = {
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(t('appTitle'))}&summary=${encodeURIComponent(t('description'))}`,
+    twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(t('appTitle'))}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
+  };
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
@@ -45,6 +56,13 @@ const App = observer(() => {
 
   const downloadCSV = useCallback(() => {
     const rows = fileStore.convertToCSV();
+    const { min, max } = fileStore.getTransactionDateRange();
+    const accountId = fileStore.getFirstAccountId();
+    const accountSuffix = accountId ? `_${accountId}` : '';
+    const filename = min === max ? 
+      `transactions${accountSuffix}_${min}` : 
+      `transactions${accountSuffix}_${min}_to_${max}`;
+
     const headers = [
       'numar cont', 'data procesarii', 'suma', 'valuta',
       'tip tranzactie', 'nume beneficiar/ordonator',
@@ -61,20 +79,33 @@ const App = observer(() => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'converted_mt940.csv';
+    link.download = `${filename}.csv`;
     link.click();
   }, []);
+
+  const handleCopy = useCallback(async () => {
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [shareUrl]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <FileText className="h-8 w-8 text-indigo-600" />
-              {t('appTitle')}
+              <div>
+                {t('appTitle')}
+                <p className="text-sm font-normal text-gray-600 mt-1">
+                  {t('description')}
+                </p>
+              </div>
             </h1>
-            <ShareMenu />
+            </div>
+            <LanguageSelector />
           </div>
           <p className="mt-2 text-sm text-gray-600">{t('privacy')}</p>
         </div>
@@ -141,8 +172,16 @@ const App = observer(() => {
               </ul>
             </div>
 
-            {/* Download Button */}
-            <div className="mt-4 flex justify-end space-x-4">
+            {/* Action Buttons */}
+            <div className="mt-4 flex justify-between items-center">
+              <button
+                onClick={() => setShowResetConfirmation(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <X className="h-4 w-4 mr-2" />
+                {t('reset')}
+              </button>
+              <div className="flex space-x-4">
               <button
                 onClick={() => fileStore.setShowCSVPreview(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -157,6 +196,7 @@ const App = observer(() => {
                 <Download className="h-4 w-4 mr-2" />
                 {t('download')}
               </button>
+              </div>
             </div>
           </div>
         )}
@@ -167,29 +207,77 @@ const App = observer(() => {
         {/* CSV Preview Modal */}
         {fileStore.showCSVPreview && <CSVPreview />}
 
+        {/* Reset Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showResetConfirmation}
+          onClose={() => setShowResetConfirmation(false)}
+          onConfirm={fileStore.reset}
+          title={t('resetTitle')}
+          message={t('confirmReset')}
+        />
+
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col space-y-6 sm:space-y-4">
+            <div className="flex justify-center space-x-6">
               <a
-                href="https://github.com/ca2datavision/ca2-mt940-merger"
+                href={shareLinks.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 hover:text-gray-500"
+                title="Share on LinkedIn"
               >
-                <Github className="h-6 w-6" />
+                <Linkedin className="h-6 w-6" />
               </a>
-              <span className="text-sm text-gray-500">{t('footer.opensource')}</span>
-              <span className="text-sm text-gray-500">•</span>
-              <span className="text-sm text-gray-500">{t('footer.ai')}</span>
+              <a
+                href={shareLinks.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-500"
+                title="Share on Twitter"
+              >
+                <Twitter className="h-6 w-6" />
+              </a>
+              <a
+                href={shareLinks.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-500"
+                title="Share on Facebook"
+              >
+                <Facebook className="h-6 w-6" />
+              </a>
+              <button
+                onClick={handleCopy}
+                className="text-gray-400 hover:text-gray-500"
+                title="Copy link"
+              >
+                {copied ? (
+                  <Check className="h-6 w-6 text-green-500" />
+                ) : (
+                  <Copy className="h-6 w-6" />
+                )}
+              </button>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">{t('footer.company')}</span>
+            <div className="flex flex-col sm:flex-row justify-center items-center sm:space-x-4 space-y-2 sm:space-y-0">
+              <a
+                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700"
+                href="https://github.com/ca2datavision/ca2-mt940-merger"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Github className="h-6 w-6 text-gray-400" />
+                <span>{t('footer.opensource')}</span>
+              </a>
+              <span className="text-sm text-gray-500 hidden sm:inline">•</span>
+              <span className="text-sm text-gray-500">{t('footer.ai')}</span>
+              <span className="text-sm text-gray-500 hidden sm:inline">•</span>
               <a
                 href="mailto:ionut@ca2datavision.ro"
-                className="text-gray-400 hover:text-gray-500"
+                className="flex items-center space-x-2 text-gray-500 hover:text-gray-700"
               >
-                <Mail className="h-6 w-6" />
+                <span>{t('footer.company')}</span>
+                <Mail className="h-5 w-5" />
               </a>
             </div>
           </div>

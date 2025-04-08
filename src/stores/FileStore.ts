@@ -22,6 +22,11 @@ export interface CSVRow {
   cuiContrapartida: string;
 }
 
+interface DateRange {
+  min: string;
+  max: string;
+}
+
 class FileStore {
   files: MT940File[] = [];
   selectedFileId: string | null = null;
@@ -95,6 +100,39 @@ class FileStore {
     return this.files.find(file => file.id === this.selectedFileId);
   }
 
+  getTransactionDateRange(): DateRange {
+    let minDate = '';
+    let maxDate = '';
+
+    for (const file of this.files) {
+      if (!file.parsed) continue;
+
+      for (const statement of file.parsed.statements) {
+        for (const transaction of statement.transactions) {
+          const date = transaction.entryDate;
+          if (!date) continue;
+
+          if (!minDate || date < minDate) minDate = date;
+          if (!maxDate || date > maxDate) maxDate = date;
+        }
+      }
+    }
+
+    return { min: this.formatDate(minDate), max: this.formatDate(maxDate) };
+  }
+
+  getFirstAccountId(): string {
+    for (const file of this.files) {
+      if (!file.parsed) continue;
+      for (const statement of file.parsed.statements) {
+        if (statement.accountId) {
+          return statement.accountId;
+        }
+      }
+    }
+    return '';
+  }
+
   convertToCSV(): CSVRow[] {
     const rows: CSVRow[] = [];
     const seenTransactions: Set<string> = new Set();
@@ -134,6 +172,14 @@ class FileStore {
 
     return rows;
   }
+
+  reset = () => {
+    runInAction(() => {
+      this.files = [];
+      this.selectedFileId = null;
+      this.showCSVPreview = false;
+    });
+  };
 }
 
 export const fileStore = new FileStore();
