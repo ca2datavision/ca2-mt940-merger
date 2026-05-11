@@ -201,6 +201,46 @@ const App = observer(() => {
               </div>
             )}
 
+            {/* ZIP Ignored/Failed Files */}
+            {(fileStore.zipIgnored.length > 0 || fileStore.zipFailed.length > 0) && (
+              <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700">
+                        ZIP Import: {fileStore.zipIgnored.length + fileStore.zipFailed.length} files skipped
+                      </h3>
+                      <ul className="mt-2 text-sm text-gray-600 list-disc pl-5 space-y-1">
+                        {fileStore.zipIgnored.slice(0, 3).map((item, idx) => (
+                          <li key={`ignored-${idx}`}>
+                            {item.name} - <span className="text-gray-500">{item.reason}</span>
+                          </li>
+                        ))}
+                        {fileStore.zipFailed.slice(0, 3).map((item, idx) => (
+                          <li key={`failed-${idx}`} className="text-red-600">
+                            {item.name} - {item.reason}
+                          </li>
+                        ))}
+                        {(fileStore.zipIgnored.length + fileStore.zipFailed.length) > 6 && (
+                          <li className="text-gray-500">
+                            ... and {fileStore.zipIgnored.length + fileStore.zipFailed.length - 6} more
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { fileStore.clearZipIgnored(); }}
+                    className="text-gray-400 hover:text-gray-500"
+                    title="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="mt-4 flex justify-between items-center">
               <button
