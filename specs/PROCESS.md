@@ -229,9 +229,9 @@ find ./specs -type f -exec chmod 644 {} +
 
 # 4. Verify structure
 ls -la ./specs/
-```
 
-5. Configure any project-specific paths in this PROCESS.md
+# 5. Configure any project-specific paths in this PROCESS.md (manual step)
+```
 
 **Responsibility:**
 - Epic Manager checks for `/specs/` before first epic
