@@ -1,8 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import * as mt940 from 'mt940-js';
-import { validateTextFile, extractZipSafely, type IgnoredFile } from '../utils/safety';
-import { decodeText } from '../utils/encoding';
-import { validateFileContent, validateContinuity, detectAllDuplicates } from '../validation';
+import { extractZipSafely, type IgnoredFile } from '../utils/safety';
+import { validateContinuity, detectAllDuplicates } from '../validation';
+import { parseFile } from '../workers/parseService';
 import type { ValidationIssue, Statement } from '../types/validation';
 import type { FileInfo, StatementInfo, TransactionInfo } from '../validation/duplicates';
 import type { MT940ParsedData } from '../types/mt940';
@@ -110,14 +109,8 @@ class FileStore {
       return { isDuplicate: true };
     }
 
-    const data = new Uint8Array(buffer);
-    validateTextFile(data);
-
     const id = generateUUID();
-    const textContent = decodeText(data);
-    const validationResult = validateFileContent(textContent, id, fileName);
-
-    const statements = await mt940.read(buffer);
+    const result = await parseFile(buffer, fileName, id);
 
     runInAction(() => {
       this.fileHashes.add(contentHash);
@@ -125,9 +118,9 @@ class FileStore {
         id,
         name: fileName,
         contentHash,
-        parsed: { statements },
-        validationIssues: validationResult.issues,
-        statements: validationResult.statements,
+        parsed: { statements: result.statements as MT940ParsedData['statements'] },
+        validationIssues: result.validationIssues as ValidationIssue[],
+        statements: result.validationStatements as Statement[],
       });
     });
 
