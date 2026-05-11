@@ -59,6 +59,16 @@ export interface ExtractedFile {
   content: Uint8Array;
 }
 
+/**
+ * Get declared uncompressed size from JSZip entry metadata.
+ * Uses internal _data.uncompressedSize property (JSZip 3.x).
+ * Returns 0 if metadata unavailable - actual size check still occurs after decompression.
+ */
+function getZipEntryDeclaredSize(file: JSZip.JSZipObject): number {
+  const meta = file as unknown as { _data?: { uncompressedSize?: number } };
+  return meta._data?.uncompressedSize ?? 0;
+}
+
 export async function extractZipSafely(zipData: ArrayBuffer): Promise<ExtractedFile[]> {
   const zip = await JSZip.loadAsync(zipData);
   const entries = Object.keys(zip.files).filter(name => !zip.files[name].dir);
@@ -69,9 +79,7 @@ export async function extractZipSafely(zipData: ArrayBuffer): Promise<ExtractedF
 
   let projectedTotalSize = 0;
   for (const name of entries) {
-    const file = zip.files[name];
-    const meta = file as unknown as { _data?: { uncompressedSize?: number } };
-    const declaredSize = meta._data?.uncompressedSize ?? 0;
+    const declaredSize = getZipEntryDeclaredSize(zip.files[name]);
 
     if (declaredSize > ZIP_LIMITS.MAX_FILE_SIZE) {
       throw new SafetyError(`File "${name}" declared size exceeds limit (${declaredSize} > ${ZIP_LIMITS.MAX_FILE_SIZE})`);
