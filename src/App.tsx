@@ -231,7 +231,7 @@ const App = observer(() => {
                     </div>
                   </div>
                   <button
-                    onClick={() => { fileStore.clearZipIgnored(); }}
+                    onClick={() => { fileStore.clearZipStatus(); }}
                     className="text-gray-400 hover:text-gray-500"
                     title="Dismiss"
                   >
