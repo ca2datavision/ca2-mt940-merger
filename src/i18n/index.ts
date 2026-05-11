@@ -52,6 +52,26 @@ const resources = {
           warning: 'Warnings',
           info: 'Info'
         }
+      },
+      report: {
+        title: 'Validation Report',
+        summary: 'Summary',
+        accounts: 'Accounts',
+        currencies: 'Currencies',
+        dateRange: 'Date Range',
+        validationResult: 'Validation Result',
+        mergeAssessment: 'Merge Assessment',
+        mergeReady: 'Ready to merge',
+        mergeNotReady: 'Cannot merge',
+        warningsSection: 'Warnings',
+        noWarnings: 'No warnings',
+        downloadReport: 'Download Report'
+      },
+      downloads: {
+        json: 'JSON',
+        jsonTitle: 'Download validation result as JSON',
+        report: 'Report',
+        reportTitle: 'Download validation report as Markdown'
       }
     }
   },
@@ -104,6 +124,26 @@ const resources = {
           warning: 'Avertismente',
           info: 'Informații'
         }
+      },
+      report: {
+        title: 'Raport de Validare',
+        summary: 'Rezumat',
+        accounts: 'Conturi',
+        currencies: 'Valute',
+        dateRange: 'Interval Date',
+        validationResult: 'Rezultat Validare',
+        mergeAssessment: 'Evaluare Îmbinare',
+        mergeReady: 'Gata pentru îmbinare',
+        mergeNotReady: 'Nu se poate îmbina',
+        warningsSection: 'Avertismente',
+        noWarnings: 'Fără avertismente',
+        downloadReport: 'Descarcă Raport'
+      },
+      downloads: {
+        json: 'JSON',
+        jsonTitle: 'Descarcă rezultatul validării ca JSON',
+        report: 'Raport',
+        reportTitle: 'Descarcă raportul de validare ca Markdown'
       }
     }
   }

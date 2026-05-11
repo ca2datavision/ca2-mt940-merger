@@ -2,9 +2,10 @@ import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle } from 'lucide-react';
+import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, FileJson, FileText as FileReport } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { toCSV } from './utils/csv';
+import { buildValidationResult, validationResultToJSON, generateValidationReport, downloadFile } from './utils/exportValidation';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -12,6 +13,7 @@ import { ConfirmationModal } from './components/ConfirmationModal';
 import { ValidationStatusBadge } from './components/ValidationStatusBadge';
 import { ValidationSummary, FileValidationCard } from './components/ValidationSummary';
 import { IssueList } from './components/IssueList';
+import { ReportPanel } from './components/ReportPanel';
 import './i18n';
 
 const App = observer(() => {
@@ -92,6 +94,18 @@ const App = observer(() => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [shareUrl]);
+
+  const downloadValidationJSON = useCallback(() => {
+    const result = buildValidationResult(fileStore.files, fileStore.batchIssues);
+    const json = validationResultToJSON(result);
+    downloadFile(json, 'validation-result.json', 'application/json');
+  }, []);
+
+  const downloadValidationReport = useCallback(() => {
+    const result = buildValidationResult(fileStore.files, fileStore.batchIssues);
+    const report = generateValidationReport(result);
+    downloadFile(report, 'validation-report.md', 'text/markdown');
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -226,6 +240,9 @@ const App = observer(() => {
               </div>
             )}
 
+            {/* Report Panel */}
+            <ReportPanel />
+
             {/* Action Buttons */}
             <div className="mt-4 flex justify-between items-center">
               <button
@@ -235,13 +252,29 @@ const App = observer(() => {
                 <X className="h-4 w-4 mr-2" />
                 {t('reset')}
               </button>
-              <div className="flex space-x-4">
+              <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => fileStore.setShowCSVPreview(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <Eye className="h-4 w-4 mr-2" />
                 Preview CSV
+              </button>
+              <button
+                onClick={downloadValidationJSON}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                title={t('downloads.jsonTitle')}
+              >
+                <FileJson className="h-4 w-4 mr-2" />
+                {t('downloads.json')}
+              </button>
+              <button
+                onClick={downloadValidationReport}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                title={t('downloads.reportTitle')}
+              >
+                <FileReport className="h-4 w-4 mr-2" />
+                {t('downloads.report')}
               </button>
               <button
                 onClick={downloadCSV}
