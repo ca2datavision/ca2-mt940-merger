@@ -99,4 +99,44 @@ describe('validateFileContent', () => {
     const arithmeticIssues = result.issues.filter(i => i.code === 'ARITHMETIC_MISMATCH');
     expect(arithmeticIssues).toHaveLength(0);
   });
+
+  it('excludes malformed transactions from arithmetic', () => {
+    const content = `:20:STARTUMS
+:25:ACCOUNT1
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:260502C200,00N123VALID
+:61:MALFORMED
+:62F:C260510EUR1200,00
+-`;
+    const result = validateFileContent(content, 'file1', 'test.sta');
+
+    expect(result.statements).toHaveLength(1);
+    // Only valid transaction should be included (malformed excluded)
+    expect(result.statements[0].transactions).toHaveLength(1);
+    // Arithmetic should be correct (1000 + 200 = 1200)
+    const arithmeticIssues = result.issues.filter(i => i.code === 'ARITHMETIC_MISMATCH');
+    expect(arithmeticIssues).toHaveLength(0);
+  });
+
+  it('reports malformed :61: as issue but excludes from statement transactions', () => {
+    const content = `:20:STARTUMS
+:25:ACCOUNT1
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:BADLINE
+:62F:C260510EUR1000,00
+-`;
+    const result = validateFileContent(content, 'file1', 'test.sta');
+
+    // Malformed line should generate an issue
+    const malformedIssues = result.issues.filter(i => i.code === 'TXN_MALFORMED_61');
+    expect(malformedIssues.length).toBeGreaterThan(0);
+
+    // But no transactions should be in the statement
+    expect(result.statements[0].transactions).toHaveLength(0);
+    // Arithmetic should pass (1000 + 0 = 1000)
+    const arithmeticIssues = result.issues.filter(i => i.code === 'ARITHMETIC_MISMATCH');
+    expect(arithmeticIssues).toHaveLength(0);
+  });
 });

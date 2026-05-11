@@ -1,4 +1,3 @@
-import Decimal from 'decimal.js';
 import type { ValidationIssue, Balance, Transaction, Statement } from '../types/validation';
 import { validateStructure } from './structural';
 import { validateTransactions, type ParsedTransaction, parse61Line } from './transaction';
@@ -136,17 +135,23 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
   return statements;
 }
 
-function parse61Content(content: string, lineNumber: number): ParsedTransaction {
+function parse61Content(content: string, lineNumber: number): ParsedTransaction | null {
   const result = parse61Line(content);
+
+  // Gate malformed transactions: require valid amount and isCredit
+  if (result.errors.length > 0 || !result.amount || result.isCredit === undefined) {
+    return null;
+  }
+
   const effectiveCredit = result.isReversal ? !result.isCredit : result.isCredit;
   return {
     lineNumber,
     valueDate: result.valueDate || '',
     entryDate: result.entryDate,
-    isCredit: result.isCredit ?? false,
+    isCredit: result.isCredit,
     isReversal: result.isReversal,
-    effectiveIsCredit: effectiveCredit ?? false,
-    amount: result.amount || new Decimal(0),
+    effectiveIsCredit: effectiveCredit,
+    amount: result.amount,
     transactionType: result.transactionType || '',
     reference: result.reference || '',
   };
