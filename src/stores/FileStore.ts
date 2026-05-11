@@ -1,6 +1,9 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
 import { validateTextFile, extractZipSafely } from '../utils/safety';
+import { decodeText } from '../utils/encoding';
+import { validateFileContent, type FileValidationResult } from '../validation';
+import type { ValidationIssue } from '../types/validation';
 import type { MT940ParsedData } from '../types/mt940';
 
 export interface MT940File {
@@ -9,6 +12,7 @@ export interface MT940File {
   contentHash: string;
   isDuplicate?: boolean;
   parsed?: MT940ParsedData;
+  validationIssues?: ValidationIssue[];
 }
 
 export interface CSVRow {
@@ -82,8 +86,11 @@ class FileStore {
     const data = new Uint8Array(buffer);
     validateTextFile(data);
 
-    const statements = await mt940.read(buffer);
     const id = generateUUID();
+    const textContent = decodeText(data);
+    const validationResult = validateFileContent(textContent, id, fileName);
+
+    const statements = await mt940.read(buffer);
 
     runInAction(() => {
       this.fileHashes.add(contentHash);
@@ -91,7 +98,8 @@ class FileStore {
         id,
         name: fileName,
         contentHash,
-        parsed: { statements }
+        parsed: { statements },
+        validationIssues: validationResult.issues,
       });
     });
 
