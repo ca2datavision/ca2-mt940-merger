@@ -5,7 +5,6 @@ import {
   validateUtf8,
   validateTextFile,
   extractZipSafely,
-  SafetyError,
   ZIP_LIMITS,
 } from './safety';
 

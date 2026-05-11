@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
-import { validateTextFile, extractZipSafely, SafetyError } from '../utils/safety';
+import { validateTextFile, extractZipSafely } from '../utils/safety';
 
 export interface MT940File {
   id: string;
