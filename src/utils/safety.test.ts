@@ -182,6 +182,21 @@ describe('extractZipSafely', () => {
     expect(files).toHaveLength(1);
     expect(files[0].name).toBe('normal.sta');
   });
+
+  it('rejects encrypted ZIP files with SafetyError', async () => {
+    const originalLoadAsync = JSZip.loadAsync;
+    JSZip.loadAsync = async () => {
+      throw new Error('Encrypted archives are not supported');
+    };
+
+    try {
+      await expect(extractZipSafely(new ArrayBuffer(10))).rejects.toThrow(
+        'Encrypted ZIP files are not supported'
+      );
+    } finally {
+      JSZip.loadAsync = originalLoadAsync;
+    }
+  });
 });
 
 describe('getZipEntryDeclaredSize', () => {
