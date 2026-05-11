@@ -6,6 +6,7 @@ export interface ParsedTransaction {
   valueDate: string;
   entryDate?: string;
   isCredit: boolean;
+  isReversal: boolean;
   amount: Decimal;
   transactionType: string;
   reference: string;
@@ -89,6 +90,7 @@ function parse61Line(content: string): {
   valueDate?: string;
   entryDate?: string;
   isCredit?: boolean;
+  isReversal: boolean;
   amount?: Decimal;
   transactionType?: string;
   reference?: string;
@@ -128,10 +130,13 @@ function parse61Line(content: string): {
 
   // D/C marker (C, D, RC, RD)
   let isCredit: boolean | undefined;
+  let isReversal = false;
   const dcMatch = content.slice(pos).match(/^(R?[CD])/);
   if (dcMatch) {
-    isCredit = dcMatch[1].endsWith('C');
-    pos += dcMatch[1].length;
+    const marker = dcMatch[1];
+    isReversal = marker.startsWith('R');
+    isCredit = marker.endsWith('C');
+    pos += marker.length;
   } else {
     errors.push('Missing or invalid D/C marker');
   }
@@ -166,6 +171,7 @@ function parse61Line(content: string): {
     valueDate: valueDateResult.date,
     entryDate,
     isCredit,
+    isReversal,
     amount,
     transactionType,
     reference,
@@ -210,6 +216,7 @@ export function validateTransactions(
           valueDate: parsed.valueDate || '',
           entryDate: parsed.entryDate,
           isCredit: parsed.isCredit,
+          isReversal: parsed.isReversal,
           amount: parsed.amount,
           transactionType: parsed.transactionType || '',
           reference: parsed.reference || '',
@@ -223,7 +230,9 @@ export function validateTransactions(
 
         transactions.push(txn);
 
-        if (parsed.isCredit) {
+        // Reversals flip the effective sign: RC = debit effect, RD = credit effect
+        const effectiveCredit = parsed.isReversal ? !parsed.isCredit : parsed.isCredit;
+        if (effectiveCredit) {
           creditSum = creditSum.plus(parsed.amount);
           creditCount++;
         } else {
