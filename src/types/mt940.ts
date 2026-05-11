@@ -31,6 +31,7 @@ export interface MT940Transaction {
   entryDate: string;
   customerReference: string;
   bankReference: string;
+  transactionType?: string;
   extraDetails?: MT940ExtraDetails;
   balance?: MT940Balance;
 }
