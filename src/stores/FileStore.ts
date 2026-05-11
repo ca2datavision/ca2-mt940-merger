@@ -2,8 +2,9 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
 import { validateTextFile, extractZipSafely } from '../utils/safety';
 import { decodeText } from '../utils/encoding';
-import { validateFileContent } from '../validation';
-import type { ValidationIssue } from '../types/validation';
+import { validateFileContent, validateContinuity, detectAllDuplicates } from '../validation';
+import type { ValidationIssue, Statement } from '../types/validation';
+import type { FileInfo, StatementInfo, TransactionInfo } from '../validation/duplicates';
 import type { MT940ParsedData } from '../types/mt940';
 
 export interface MT940File {
@@ -13,6 +14,7 @@ export interface MT940File {
   isDuplicate?: boolean;
   parsed?: MT940ParsedData;
   validationIssues?: ValidationIssue[];
+  statements?: Statement[];
 }
 
 export interface CSVRow {
@@ -50,6 +52,7 @@ class FileStore {
   files: MT940File[] = [];
   selectedFileId: string | null = null;
   showCSVPreview: boolean = false;
+  batchIssues: ValidationIssue[] = [];
   private fileHashes: Set<string> = new Set();
 
   // SHA-256 hash for duplicate detection. Requires secure context (HTTPS).
@@ -100,6 +103,7 @@ class FileStore {
         contentHash,
         parsed: { statements },
         validationIssues: validationResult.issues,
+        statements: validationResult.statements,
       });
     });
 
@@ -245,11 +249,88 @@ class FileStore {
     return rows;
   }
 
+  validateBatch = () => {
+    const issues: ValidationIssue[] = [];
+
+    // Collect all statements for continuity validation
+    const allStatements: Statement[] = [];
+    for (const file of this.files) {
+      if (file.statements) {
+        allStatements.push(...file.statements);
+      }
+    }
+
+    // Run continuity validation
+    if (allStatements.length > 0) {
+      const continuityResult = validateContinuity(allStatements);
+      issues.push(...continuityResult.issues);
+    }
+
+    // Prepare data for duplicate detection
+    const fileInfos: FileInfo[] = this.files.map(f => ({
+      id: f.id,
+      name: f.name,
+      hash: f.contentHash,
+    }));
+
+    const statementInfos: StatementInfo[] = [];
+    const transactionInfos: TransactionInfo[] = [];
+
+    for (const file of this.files) {
+      if (!file.statements) continue;
+
+      for (let si = 0; si < file.statements.length; si++) {
+        const stmt = file.statements[si];
+
+        statementInfos.push({
+          fileId: file.id,
+          fileName: file.name,
+          statementIndex: si,
+          accountId: stmt.accountId,
+          currency: stmt.openingBalance.currency,
+          statementNumber: stmt.statementNumber,
+          openingDate: stmt.openingBalance.date,
+          openingAmount: stmt.openingBalance.amount,
+          closingDate: stmt.closingBalance.date,
+          closingAmount: stmt.closingBalance.amount,
+        });
+
+        for (let ti = 0; ti < stmt.transactions.length; ti++) {
+          const txn = stmt.transactions[ti];
+          transactionInfos.push({
+            fileId: file.id,
+            fileName: file.name,
+            statementIndex: si,
+            transactionIndex: ti,
+            accountId: stmt.accountId,
+            currency: txn.currency,
+            valueDate: txn.valueDate,
+            entryDate: txn.entryDate,
+            amount: txn.amount,
+            isCredit: txn.isCredit,
+            transactionType: txn.transactionType,
+            reference: txn.customerReference,
+            narrative: txn.description,
+          });
+        }
+      }
+    }
+
+    // Run duplicate detection
+    const duplicateResult = detectAllDuplicates(fileInfos, statementInfos, transactionInfos);
+    issues.push(...duplicateResult.issues);
+
+    runInAction(() => {
+      this.batchIssues = issues;
+    });
+  };
+
   reset = () => {
     runInAction(() => {
       this.files = [];
       this.selectedFileId = null;
       this.showCSVPreview = false;
+      this.batchIssues = [];
       this.fileHashes.clear();
     });
   };
