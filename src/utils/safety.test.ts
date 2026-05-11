@@ -83,12 +83,17 @@ describe('extractZipSafely', () => {
     await expect(extractZipSafely(zipData)).rejects.toThrow('too many files');
   });
 
-  it('rejects ZIP with oversized file', async () => {
+  it('ignores oversized file (best-effort)', async () => {
     const zip = new JSZip();
     zip.file('large.txt', 'x'.repeat(ZIP_LIMITS.MAX_FILE_SIZE + 1));
+    zip.file('normal.sta', 'valid content');
     const zipData = await zip.generateAsync({ type: 'arraybuffer' });
 
-    await expect(extractZipSafely(zipData)).rejects.toThrow(/exceeds.*limit/);
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('normal.sta');
+    expect(ignored.find(i => i.name === 'large.txt')).toBeDefined();
+    expect(ignored.find(i => i.name === 'large.txt')?.reason).toMatch(/exceeds.*limit/);
   });
 
   it('filters out __MACOSX directory', async () => {

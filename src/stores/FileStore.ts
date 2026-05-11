@@ -122,10 +122,6 @@ class FileStore {
             let anyAdded = false;
 
             for (const extracted of extractedFiles) {
-              if (!extracted.name.toLowerCase().endsWith('.sta') &&
-                  !extracted.name.toLowerCase().endsWith('.mt940')) {
-                continue;
-              }
               const result = await this.processBuffer(extracted.content.buffer, extracted.name);
               if (!result.isDuplicate) anyAdded = true;
             }

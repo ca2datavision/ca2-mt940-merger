@@ -94,35 +94,47 @@ export function getZipEntryDeclaredSize(file: JSZip.JSZipObject): number {
 }
 
 export async function extractZipSafely(zipData: ArrayBuffer): Promise<ZipExtractionResult> {
-  const zip = await JSZip.loadAsync(zipData);
-  const allEntries = Object.keys(zip.files).filter(name => !zip.files[name].dir);
-
-  // Filter out macOS metadata and unsupported extensions
-  const ignored: IgnoredFile[] = [];
-  const entries = allEntries.filter(name => {
-    if (isMacOSMetadata(name)) {
-      ignored.push({ name, reason: 'macOS metadata' });
-      return false;
+  let zip: JSZip;
+  try {
+    zip = await JSZip.loadAsync(zipData);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.toLowerCase().includes('encrypted') || msg.toLowerCase().includes('password')) {
+      throw new SafetyError('Encrypted ZIP files are not supported');
     }
-    if (!hasAllowedExtension(name)) {
-      ignored.push({ name, reason: 'unsupported extension' });
-      return false;
-    }
-    return true;
-  });
-
-  if (entries.length > ZIP_LIMITS.MAX_ENTRIES) {
-    throw new SafetyError(`ZIP contains too many files (${entries.length} > ${ZIP_LIMITS.MAX_ENTRIES})`);
+    throw new SafetyError(`Failed to read ZIP: ${msg}`);
   }
 
-  let projectedTotalSize = 0;
-  for (const name of entries) {
-    const declaredSize = getZipEntryDeclaredSize(zip.files[name]);
+  const allEntries = Object.keys(zip.files).filter(name => !zip.files[name].dir);
+  const ignored: IgnoredFile[] = [];
+  const candidates: string[] = [];
 
-    if (declaredSize > ZIP_LIMITS.MAX_FILE_SIZE) {
-      throw new SafetyError(`File "${name}" declared size exceeds limit (${declaredSize} > ${ZIP_LIMITS.MAX_FILE_SIZE})`);
+  // Filter entries
+  for (const name of allEntries) {
+    if (isMacOSMetadata(name)) {
+      ignored.push({ name, reason: 'macOS metadata' });
+    } else if (!hasAllowedExtension(name)) {
+      ignored.push({ name, reason: 'unsupported extension' });
+    } else {
+      candidates.push(name);
     }
-    projectedTotalSize += declaredSize;
+  }
+
+  if (candidates.length > ZIP_LIMITS.MAX_ENTRIES) {
+    throw new SafetyError(`ZIP contains too many files (${candidates.length} > ${ZIP_LIMITS.MAX_ENTRIES})`);
+  }
+
+  // Check declared sizes (skip oversized, don't throw)
+  const validCandidates: string[] = [];
+  let projectedTotalSize = 0;
+  for (const name of candidates) {
+    const declaredSize = getZipEntryDeclaredSize(zip.files[name]);
+    if (declaredSize > ZIP_LIMITS.MAX_FILE_SIZE) {
+      ignored.push({ name, reason: `exceeds size limit (${declaredSize} bytes)` });
+    } else {
+      validCandidates.push(name);
+      projectedTotalSize += declaredSize;
+    }
   }
 
   if (projectedTotalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
@@ -132,20 +144,32 @@ export async function extractZipSafely(zipData: ArrayBuffer): Promise<ZipExtract
   const files: ExtractedFile[] = [];
   let actualTotalSize = 0;
 
-  for (const name of entries) {
-    const file = zip.files[name];
-    const content = await file.async('uint8array');
+  // Best-effort extraction
+  for (const name of validCandidates) {
+    try {
+      const file = zip.files[name];
+      const content = await file.async('uint8array');
 
-    if (content.length > ZIP_LIMITS.MAX_FILE_SIZE) {
-      throw new SafetyError(`File "${name}" exceeds size limit (${content.length} > ${ZIP_LIMITS.MAX_FILE_SIZE})`);
+      if (content.length > ZIP_LIMITS.MAX_FILE_SIZE) {
+        ignored.push({ name, reason: `exceeds size limit (${content.length} bytes)` });
+        continue;
+      }
+
+      actualTotalSize += content.length;
+      if (actualTotalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
+        ignored.push({ name, reason: 'total size limit reached' });
+        break;
+      }
+
+      files.push({ name, content });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.toLowerCase().includes('encrypted') || msg.toLowerCase().includes('password')) {
+        ignored.push({ name, reason: 'encrypted entry' });
+      } else {
+        ignored.push({ name, reason: `extraction failed: ${msg}` });
+      }
     }
-
-    actualTotalSize += content.length;
-    if (actualTotalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
-      throw new SafetyError(`ZIP total uncompressed size exceeds limit (${actualTotalSize} > ${ZIP_LIMITS.MAX_TOTAL_SIZE})`);
-    }
-
-    files.push({ name, content });
   }
 
   return { files, ignored };
