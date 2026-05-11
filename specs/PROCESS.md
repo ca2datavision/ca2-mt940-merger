@@ -212,7 +212,7 @@ Every VRD must be updated with created epics:
 
 ### Phase 0: Project Initialization
 
-**Important:**: if ./specs/ directory already exists, ship this phase 
+**Important:** If ./specs/ directory already exists, skip this phase. 
 
 Every new DevChain project starts with this structure. To bootstrap:
 
