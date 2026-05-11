@@ -7,6 +7,7 @@ export interface ParsedTransaction {
   entryDate?: string;
   isCredit: boolean;
   isReversal: boolean;
+  effectiveIsCredit: boolean;
   amount: Decimal;
   transactionType: string;
   reference: string;
@@ -211,12 +212,16 @@ export function validateTransactions(
       }
 
       if (parsed.amount && parsed.isCredit !== undefined) {
+        // Reversals flip the effective sign: RC = debit effect, RD = credit effect
+        const effectiveCredit = parsed.isReversal ? !parsed.isCredit : parsed.isCredit;
+
         const txn: ParsedTransaction = {
           lineNumber,
           valueDate: parsed.valueDate || '',
           entryDate: parsed.entryDate,
           isCredit: parsed.isCredit,
           isReversal: parsed.isReversal,
+          effectiveIsCredit: effectiveCredit,
           amount: parsed.amount,
           transactionType: parsed.transactionType || '',
           reference: parsed.reference || '',
@@ -229,9 +234,6 @@ export function validateTransactions(
         }
 
         transactions.push(txn);
-
-        // Reversals flip the effective sign: RC = debit effect, RD = credit effect
-        const effectiveCredit = parsed.isReversal ? !parsed.isCredit : parsed.isCredit;
         if (effectiveCredit) {
           creditSum = creditSum.plus(parsed.amount);
           creditCount++;

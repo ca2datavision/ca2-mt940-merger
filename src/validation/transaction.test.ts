@@ -31,6 +31,7 @@ describe('validateTransactions', () => {
     expect(transactions).toHaveLength(1);
     expect(transactions[0].isCredit).toBe(true);
     expect(transactions[0].isReversal).toBe(true);
+    expect(transactions[0].effectiveIsCredit).toBe(false);
   });
 
   it('parses RD (reversal of debit) with isReversal flag', () => {
@@ -40,6 +41,7 @@ describe('validateTransactions', () => {
     expect(transactions).toHaveLength(1);
     expect(transactions[0].isCredit).toBe(false);
     expect(transactions[0].isReversal).toBe(true);
+    expect(transactions[0].effectiveIsCredit).toBe(true);
   });
 
   it('RC counts as debit in summary (reversal of credit)', () => {
@@ -60,11 +62,12 @@ describe('validateTransactions', () => {
     expect(summary.creditSum.equals(new Decimal('100'))).toBe(true);
   });
 
-  it('normal C/D have isReversal false', () => {
+  it('normal C/D have isReversal false and effectiveIsCredit matches isCredit', () => {
     const content = `:61:230115C100,00N123REF`;
     const { transactions } = validateTransactions(content);
 
     expect(transactions[0].isReversal).toBe(false);
+    expect(transactions[0].effectiveIsCredit).toBe(true);
   });
 
   it('associates :86: narrative with :61:', () => {

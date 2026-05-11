@@ -100,7 +100,7 @@ function convertTransaction(txn: ParsedTransaction, currency: string, index: num
     valueDate: txn.valueDate,
     amount: txn.amount,
     currency,
-    isCredit: txn.isReversal ? !txn.isCredit : txn.isCredit,
+    isCredit: txn.effectiveIsCredit,
     transactionType: txn.transactionType,
     customerReference: txn.reference,
     bankReference: '',
