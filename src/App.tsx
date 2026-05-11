@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
+import { toCSV } from './utils/csv';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -71,10 +72,7 @@ const App = observer(() => {
       'sold intermediar', 'CUI Contrapartida'
     ];
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => Object.values(row).join(','))
-    ].join('\n');
+    const csvContent = toCSV(headers, rows);
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
