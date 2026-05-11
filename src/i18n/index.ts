@@ -84,9 +84,20 @@ const resources = {
         deselectAll: 'Deselect All',
         transactions: 'transactions',
         selected: '{{count}} statement(s) selected',
+        selectToMerge: 'Select statements to merge',
         preview: 'Preview',
         previewTitle: 'Merged MT940 Preview',
-        download: 'Download MT940'
+        previewTitleMulti: 'Multi-Message MT940 Preview',
+        previewTitleSingle: 'Single-Statement MT940 Preview',
+        previewMulti: 'Preview Multi',
+        previewSingle: 'Preview Single',
+        download: 'Download MT940',
+        downloadMulti: 'Multi-Message',
+        downloadSingle: 'Single Statement',
+        multiDesc: 'Keep original statement structure',
+        singleDesc: 'Combine all into one statement',
+        disabledErrors: '{{count}} validation error(s) - fix before merging',
+        disabledNoSelection: 'Select statements to enable merge'
       }
     }
   },
@@ -171,9 +182,20 @@ const resources = {
         deselectAll: 'Deselectează Tot',
         transactions: 'tranzacții',
         selected: '{{count}} extras(e) selectat(e)',
+        selectToMerge: 'Selectează extrase pentru îmbinare',
         preview: 'Previzualizare',
         previewTitle: 'Previzualizare MT940 Îmbinat',
-        download: 'Descarcă MT940'
+        previewTitleMulti: 'Previzualizare MT940 Multi-Mesaj',
+        previewTitleSingle: 'Previzualizare MT940 Extras Unic',
+        previewMulti: 'Previzualizare Multi',
+        previewSingle: 'Previzualizare Unic',
+        download: 'Descarcă MT940',
+        downloadMulti: 'Multi-Mesaj',
+        downloadSingle: 'Extras Unic',
+        multiDesc: 'Păstrează structura originală',
+        singleDesc: 'Combină totul într-un singur extras',
+        disabledErrors: '{{count}} eroare(i) de validare - corectați înainte de îmbinare',
+        disabledNoSelection: 'Selectați extrase pentru a activa îmbinarea'
       }
     }
   }
