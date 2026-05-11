@@ -72,6 +72,11 @@ const resources = {
         jsonTitle: 'Download validation result as JSON',
         report: 'Report',
         reportTitle: 'Download validation report as Markdown'
+      },
+      progress: {
+        title: 'Processing Files',
+        processing: 'File {{current}} of {{total}}',
+        cancel: 'Cancel'
       }
     }
   },
@@ -144,6 +149,11 @@ const resources = {
         jsonTitle: 'Descarcă rezultatul validării ca JSON',
         report: 'Raport',
         reportTitle: 'Descarcă raportul de validare ca Markdown'
+      },
+      progress: {
+        title: 'Se procesează fișierele',
+        processing: 'Fișierul {{current}} din {{total}}',
+        cancel: 'Anulează'
       }
     }
   }

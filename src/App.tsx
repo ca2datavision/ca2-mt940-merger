@@ -14,6 +14,7 @@ import { ValidationStatusBadge } from './components/ValidationStatusBadge';
 import { ValidationSummary, FileValidationCard } from './components/ValidationSummary';
 import { IssueList } from './components/IssueList';
 import { ReportPanel } from './components/ReportPanel';
+import { ProgressIndicator } from './components/ProgressIndicator';
 import './i18n';
 
 const App = observer(() => {
@@ -302,6 +303,9 @@ const App = observer(() => {
           title={t('resetTitle')}
           message={t('confirmReset')}
         />
+
+        {/* Progress Indicator */}
+        <ProgressIndicator />
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">

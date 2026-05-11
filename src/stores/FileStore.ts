@@ -58,6 +58,13 @@ export interface AddFileResult {
   duplicateCount: number;
   ignoredCount: number;
   failedCount: number;
+  cancelled?: boolean;
+}
+
+export interface ProcessingProgress {
+  current: number;
+  total: number;
+  currentFile: string;
 }
 
 class FileStore {
@@ -67,7 +74,10 @@ class FileStore {
   batchIssues: ValidationIssue[] = [];
   zipIgnored: IgnoredFile[] = [];
   zipFailed: FailedFile[] = [];
+  isProcessing: boolean = false;
+  progress: ProcessingProgress | null = null;
   private fileHashes: Set<string> = new Set();
+  private abortController: AbortController | null = null;
 
   // SHA-256 hash for duplicate detection. Requires secure context (HTTPS).
   private async computeHash(buffer: ArrayBuffer): Promise<string> {
@@ -125,62 +135,117 @@ class FileStore {
   }
 
   addFile = async (file: File): Promise<AddFileResult> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const buffer = reader.result as ArrayBuffer;
-
-          if (file.name.toLowerCase().endsWith('.zip')) {
-            const { files: extractedFiles, ignored } = await extractZipSafely(buffer);
-            let addedCount = 0;
-            let duplicateCount = 0;
-            const failed: FailedFile[] = [];
-
-            for (const extracted of extractedFiles) {
-              try {
-                const result = await this.processBuffer(extracted.content.buffer, extracted.name);
-                if (result.isDuplicate) {
-                  duplicateCount++;
-                } else {
-                  addedCount++;
-                }
-              } catch (err) {
-                const reason = err instanceof Error ? err.message : String(err);
-                failed.push({ name: extracted.name, reason });
-              }
-            }
-
-            runInAction(() => {
-              this.zipIgnored = ignored;
-              this.zipFailed = failed;
-            });
-
-            resolve({
-              addedCount,
-              duplicateCount,
-              ignoredCount: ignored.length,
-              failedCount: failed.length,
-            });
-          } else {
-            const result = await this.processBuffer(buffer, file.name);
-            resolve({
-              addedCount: result.isDuplicate ? 0 : 1,
-              duplicateCount: result.isDuplicate ? 1 : 0,
-              ignoredCount: 0,
-              failedCount: 0,
-            });
-          }
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = (error) => {
-        console.error('Error reading file:', error);
-        reject(new Error('Failed to read MT940 file'));
-      };
-      reader.readAsArrayBuffer(file);
+    this.abortController = new AbortController();
+    runInAction(() => {
+      this.isProcessing = true;
+      this.progress = { current: 0, total: 1, currentFile: file.name };
     });
+
+    try {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            const buffer = reader.result as ArrayBuffer;
+
+            if (file.name.toLowerCase().endsWith('.zip')) {
+              const { files: extractedFiles, ignored } = await extractZipSafely(buffer);
+              let addedCount = 0;
+              let duplicateCount = 0;
+              const failed: FailedFile[] = [];
+              const total = extractedFiles.length;
+
+              runInAction(() => {
+                this.progress = { current: 0, total, currentFile: '' };
+              });
+
+              for (let i = 0; i < extractedFiles.length; i++) {
+                if (this.abortController?.signal.aborted) {
+                  runInAction(() => {
+                    this.isProcessing = false;
+                    this.progress = null;
+                  });
+                  resolve({
+                    addedCount,
+                    duplicateCount,
+                    ignoredCount: ignored.length,
+                    failedCount: failed.length,
+                    cancelled: true,
+                  });
+                  return;
+                }
+
+                const extracted = extractedFiles[i];
+                runInAction(() => {
+                  this.progress = { current: i + 1, total, currentFile: extracted.name };
+                });
+
+                try {
+                  const result = await this.processBuffer(extracted.content.buffer, extracted.name);
+                  if (result.isDuplicate) {
+                    duplicateCount++;
+                  } else {
+                    addedCount++;
+                  }
+                } catch (err) {
+                  const reason = err instanceof Error ? err.message : String(err);
+                  failed.push({ name: extracted.name, reason });
+                }
+              }
+
+              runInAction(() => {
+                this.zipIgnored = ignored;
+                this.zipFailed = failed;
+                this.isProcessing = false;
+                this.progress = null;
+              });
+
+              resolve({
+                addedCount,
+                duplicateCount,
+                ignoredCount: ignored.length,
+                failedCount: failed.length,
+              });
+            } else {
+              const result = await this.processBuffer(buffer, file.name);
+              runInAction(() => {
+                this.isProcessing = false;
+                this.progress = null;
+              });
+              resolve({
+                addedCount: result.isDuplicate ? 0 : 1,
+                duplicateCount: result.isDuplicate ? 1 : 0,
+                ignoredCount: 0,
+                failedCount: 0,
+              });
+            }
+          } catch (error) {
+            runInAction(() => {
+              this.isProcessing = false;
+              this.progress = null;
+            });
+            reject(error);
+          }
+        };
+        reader.onerror = (error) => {
+          console.error('Error reading file:', error);
+          runInAction(() => {
+            this.isProcessing = false;
+            this.progress = null;
+          });
+          reject(new Error('Failed to read MT940 file'));
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    } finally {
+      this.abortController = null;
+    }
+  };
+
+  cancelProcessing = () => {
+    if (this.abortController) {
+      this.abortController.abort();
+    }
   };
 
   removeFile = (id: string) => {
