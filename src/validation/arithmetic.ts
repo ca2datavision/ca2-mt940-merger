@@ -35,10 +35,10 @@ export function calculateTransactionTotals(transactions: Transaction[]): {
   let totalCredits = new Decimal(0);
 
   for (const tx of transactions) {
-    if (tx.amount.isNegative()) {
-      totalDebits = totalDebits.plus(tx.amount.abs());
-    } else {
+    if (tx.isCredit) {
       totalCredits = totalCredits.plus(tx.amount);
+    } else {
+      totalDebits = totalDebits.plus(tx.amount);
     }
   }
 

@@ -14,7 +14,7 @@ function makeTransaction(amount: number): Transaction {
     fingerprint: 'fp1',
     entryDate: '2026-05-05',
     valueDate: '2026-05-05',
-    amount: new Decimal(amount),
+    amount: new Decimal(Math.abs(amount)),
     currency: 'EUR',
     isCredit: amount >= 0,
     transactionType: 'NTRF',
