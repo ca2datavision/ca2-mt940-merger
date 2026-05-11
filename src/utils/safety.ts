@@ -67,8 +67,24 @@ export async function extractZipSafely(zipData: ArrayBuffer): Promise<ExtractedF
     throw new SafetyError(`ZIP contains too many files (${entries.length} > ${ZIP_LIMITS.MAX_ENTRIES})`);
   }
 
+  let projectedTotalSize = 0;
+  for (const name of entries) {
+    const file = zip.files[name];
+    const meta = file as unknown as { _data?: { uncompressedSize?: number } };
+    const declaredSize = meta._data?.uncompressedSize ?? 0;
+
+    if (declaredSize > ZIP_LIMITS.MAX_FILE_SIZE) {
+      throw new SafetyError(`File "${name}" declared size exceeds limit (${declaredSize} > ${ZIP_LIMITS.MAX_FILE_SIZE})`);
+    }
+    projectedTotalSize += declaredSize;
+  }
+
+  if (projectedTotalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
+    throw new SafetyError(`ZIP declared total size exceeds limit (${projectedTotalSize} > ${ZIP_LIMITS.MAX_TOTAL_SIZE})`);
+  }
+
   const files: ExtractedFile[] = [];
-  let totalSize = 0;
+  let actualTotalSize = 0;
 
   for (const name of entries) {
     const file = zip.files[name];
@@ -78,9 +94,9 @@ export async function extractZipSafely(zipData: ArrayBuffer): Promise<ExtractedF
       throw new SafetyError(`File "${name}" exceeds size limit (${content.length} > ${ZIP_LIMITS.MAX_FILE_SIZE})`);
     }
 
-    totalSize += content.length;
-    if (totalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
-      throw new SafetyError(`ZIP total uncompressed size exceeds limit (${totalSize} > ${ZIP_LIMITS.MAX_TOTAL_SIZE})`);
+    actualTotalSize += content.length;
+    if (actualTotalSize > ZIP_LIMITS.MAX_TOTAL_SIZE) {
+      throw new SafetyError(`ZIP total uncompressed size exceeds limit (${actualTotalSize} > ${ZIP_LIMITS.MAX_TOTAL_SIZE})`);
     }
 
     files.push({ name, content });
