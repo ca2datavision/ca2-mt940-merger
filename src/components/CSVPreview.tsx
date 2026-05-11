@@ -1,11 +1,9 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { fileStore } from '../stores/FileStore';
 
 export const CSVPreview = observer(() => {
-  const { t } = useTranslation();
   const rows = fileStore.convertToCSV();
 
   if (rows.length === 0) return null;

@@ -1,11 +1,10 @@
 import React from 'react';
 import { observer } from 'mobx-react-lite';
 import { X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { fileStore } from '../stores/FileStore';
+import type { MT940Statement, MT940Transaction } from '../types/mt940';
 
 export const PreviewModal = observer(() => {
-  const { t } = useTranslation();
   const file = fileStore.selectedFile;
 
   const formatDate = (dateStr: string | undefined) => {
@@ -34,7 +33,7 @@ export const PreviewModal = observer(() => {
         </div>
         
         <div className="overflow-auto flex-1 p-4">
-          {file.parsed.statements.map((statement: any, statementIndex: number) => (
+          {file.parsed.statements.map((statement: MT940Statement, statementIndex: number) => (
             <div key={statementIndex} className="mb-8">
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-gray-700 mb-2">Statement Information</h3>
@@ -59,7 +58,7 @@ export const PreviewModal = observer(() => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {statement.transactions.map((transaction: any, index: number) => (
+                    {statement.transactions.map((transaction: MT940Transaction, index: number) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {formatDate(transaction.entryDate)}
