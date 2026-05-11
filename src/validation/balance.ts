@@ -88,10 +88,9 @@ export function validateAmount(amount: string, field: string, statementIndex?: n
   return issues;
 }
 
-export function parseAmount(amount: string, creditDebit: string): Decimal {
+export function parseAmount(amount: string): Decimal {
   const normalized = amount.replace(',', '.');
-  const value = new Decimal(normalized);
-  return creditDebit === 'D' ? value.neg() : value;
+  return new Decimal(normalized);
 }
 
 export function convertDateToISO(yymmdd: string): string {
@@ -115,7 +114,7 @@ export function validateRawBalance(raw: RawBalance, field: string, statementInde
 
   const balance: Balance = {
     date: convertDateToISO(raw.date),
-    amount: parseAmount(raw.amount, raw.creditDebit),
+    amount: parseAmount(raw.amount),
     currency: raw.currency,
     isCredit: raw.creditDebit === 'C',
   };

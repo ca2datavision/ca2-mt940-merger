@@ -86,14 +86,14 @@ describe('validateAmount', () => {
 });
 
 describe('parseAmount', () => {
-  it('parses credit amount as positive', () => {
-    const result = parseAmount('1000,50', 'C');
+  it('parses comma-separated amount to absolute Decimal', () => {
+    const result = parseAmount('1000,50');
     expect(result.equals(new Decimal('1000.50'))).toBe(true);
   });
 
-  it('parses debit amount as negative', () => {
-    const result = parseAmount('500,00', 'D');
-    expect(result.equals(new Decimal('-500.00'))).toBe(true);
+  it('parses zero amount', () => {
+    const result = parseAmount('0,00');
+    expect(result.equals(new Decimal('0'))).toBe(true);
   });
 });
 
