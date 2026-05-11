@@ -30,6 +30,28 @@ const resources = {
         ai: 'Built with AI assistance',
         company: 'Built by CA2 Data Vision',
         contact: 'Contact'
+      },
+      validation: {
+        status: {
+          valid: 'Valid',
+          validWithWarnings: 'Valid with warnings',
+          invalid: 'Invalid'
+        },
+        files: 'Files',
+        statements: 'Statements',
+        transactions: 'Transactions',
+        errors: 'errors',
+        warnings: 'warnings',
+        noIssues: 'No issues'
+      },
+      issues: {
+        title: 'Validation Issues ({{count}})',
+        noMatchingFilters: 'No issues match the selected filters',
+        filter: {
+          error: 'Errors',
+          warning: 'Warnings',
+          info: 'Info'
+        }
       }
     }
   },
@@ -60,6 +82,28 @@ const resources = {
         ai: 'Construit cu asistență AI',
         company: 'Construit de CA2 Data Vision',
         contact: 'Contact'
+      },
+      validation: {
+        status: {
+          valid: 'Valid',
+          validWithWarnings: 'Valid cu avertismente',
+          invalid: 'Invalid'
+        },
+        files: 'Fișiere',
+        statements: 'Extrase',
+        transactions: 'Tranzacții',
+        errors: 'erori',
+        warnings: 'avertismente',
+        noIssues: 'Fără probleme'
+      },
+      issues: {
+        title: 'Probleme de Validare ({{count}})',
+        noMatchingFilters: 'Nicio problemă nu corespunde filtrelor selectate',
+        filter: {
+          error: 'Erori',
+          warning: 'Avertismente',
+          info: 'Informații'
+        }
       }
     }
   }

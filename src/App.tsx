@@ -9,6 +9,9 @@ import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
 import { LanguageSelector } from './components/LanguageSelector';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ValidationStatusBadge } from './components/ValidationStatusBadge';
+import { ValidationSummary, FileValidationCard } from './components/ValidationSummary';
+import { IssueList } from './components/IssueList';
 import './i18n';
 
 const App = observer(() => {
@@ -140,18 +143,25 @@ const App = observer(() => {
         {/* File List */}
         {fileStore.files.length > 0 && (
           <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <ValidationStatusBadge />
+            </div>
+            <ValidationSummary />
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <ul className="divide-y divide-gray-200">
                 {fileStore.files.map((file) => (
                   <li key={file.id}>
                     <div className="px-4 py-4 sm:px-6 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                        <div className="text-sm font-medium text-indigo-600 truncate">
-                          {file.name}
+                      <div className="flex items-center min-w-0 flex-1">
+                        <FileText className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-indigo-600 truncate">
+                            {file.name}
+                          </div>
+                          <FileValidationCard fileId={file.id} />
                         </div>
                       </div>
-                      <div className="flex space-x-3">
+                      <div className="flex space-x-3 ml-4">
                         <button
                           onClick={() => fileStore.setSelectedFile(file.id)}
                           className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -174,32 +184,7 @@ const App = observer(() => {
             </div>
 
             {/* Batch Validation Issues */}
-            {fileStore.batchIssues.length > 0 && (
-              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                <div className="flex items-start">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400 mr-3 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-medium text-yellow-800">
-                      Validation Issues ({fileStore.batchIssues.length})
-                    </h3>
-                    <ul className="mt-2 text-sm text-yellow-700 list-disc pl-5 space-y-1">
-                      {fileStore.batchIssues.slice(0, 5).map((issue, idx) => (
-                        <li key={idx}>
-                          <span className={issue.severity === 'error' ? 'font-semibold' : ''}>
-                            [{issue.code}] {issue.message}
-                          </span>
-                        </li>
-                      ))}
-                      {fileStore.batchIssues.length > 5 && (
-                        <li className="text-yellow-600">
-                          ... and {fileStore.batchIssues.length - 5} more issues
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
+            <IssueList issues={fileStore.batchIssues} />
 
             {/* ZIP Ignored/Failed Files */}
             {(fileStore.zipIgnored.length > 0 || fileStore.zipFailed.length > 0) && (
