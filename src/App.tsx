@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check } from 'lucide-react';
+import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { toCSV } from './utils/csv';
 import { PreviewModal } from './components/PreviewModal';
@@ -32,6 +32,7 @@ const App = observer(() => {
       for (const file of Array.from(files)) {
         await fileStore.addFile(file);
       }
+      fileStore.validateBatch();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
@@ -46,6 +47,7 @@ const App = observer(() => {
       for (const file of Array.from(files)) {
         await fileStore.addFile(file);
       }
+      fileStore.validateBatch();
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
@@ -56,6 +58,7 @@ const App = observer(() => {
   }, []);
 
   const downloadCSV = useCallback(() => {
+    fileStore.validateBatch();
     const rows = fileStore.convertToCSV();
     const { min, max } = fileStore.getTransactionDateRange();
     const accountId = fileStore.getFirstAccountId();
@@ -157,7 +160,7 @@ const App = observer(() => {
                           {t('preview')}
                         </button>
                         <button
-                          onClick={() => fileStore.removeFile(file.id)}
+                          onClick={() => { fileStore.removeFile(file.id); fileStore.validateBatch(); }}
                           className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                         >
                           <X className="h-4 w-4 mr-1" />
@@ -169,6 +172,34 @@ const App = observer(() => {
                 ))}
               </ul>
             </div>
+
+            {/* Batch Validation Issues */}
+            {fileStore.batchIssues.length > 0 && (
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex items-start">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400 mr-3 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Validation Issues ({fileStore.batchIssues.length})
+                    </h3>
+                    <ul className="mt-2 text-sm text-yellow-700 list-disc pl-5 space-y-1">
+                      {fileStore.batchIssues.slice(0, 5).map((issue, idx) => (
+                        <li key={idx}>
+                          <span className={issue.severity === 'error' ? 'font-semibold' : ''}>
+                            [{issue.code}] {issue.message}
+                          </span>
+                        </li>
+                      ))}
+                      {fileStore.batchIssues.length > 5 && (
+                        <li className="text-yellow-600">
+                          ... and {fileStore.batchIssues.length - 5} more issues
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="mt-4 flex justify-between items-center">
