@@ -163,22 +163,13 @@ class FileStore {
               failedCount: failed.length,
             });
           } else {
-            try {
-              const result = await this.processBuffer(buffer, file.name);
-              resolve({
-                addedCount: result.isDuplicate ? 0 : 1,
-                duplicateCount: result.isDuplicate ? 1 : 0,
-                ignoredCount: 0,
-                failedCount: 0,
-              });
-            } catch {
-              resolve({
-                addedCount: 0,
-                duplicateCount: 0,
-                ignoredCount: 0,
-                failedCount: 1,
-              });
-            }
+            const result = await this.processBuffer(buffer, file.name);
+            resolve({
+              addedCount: result.isDuplicate ? 0 : 1,
+              duplicateCount: result.isDuplicate ? 1 : 0,
+              ignoredCount: 0,
+              failedCount: 0,
+            });
           }
         } catch (error) {
           reject(error);
