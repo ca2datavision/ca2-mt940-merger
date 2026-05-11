@@ -217,7 +217,8 @@ Every VRD must be updated with created epics:
 Every new DevChain project starts with this structure. To bootstrap:
 
 ```bash
-# 1. Copy template to project
+# 1. Create specs directory and copy template
+mkdir -p ./specs
 cp -r /app/specs-flow-template/* ./specs/
 
 # 2. Set directory permissions (755 = rwxr-xr-x)
