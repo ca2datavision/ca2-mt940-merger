@@ -15,6 +15,7 @@ import { ValidationSummary, FileValidationCard } from './components/ValidationSu
 import { IssueList } from './components/IssueList';
 import { ReportPanel } from './components/ReportPanel';
 import { ProgressIndicator } from './components/ProgressIndicator';
+import { MergePanel } from './components/MergePanel';
 import './i18n';
 
 const App = observer(() => {
@@ -243,6 +244,9 @@ const App = observer(() => {
 
             {/* Report Panel */}
             <ReportPanel />
+
+            {/* Merge Panel */}
+            <MergePanel />
 
             {/* Action Buttons */}
             <div className="mt-4 flex justify-between items-center">

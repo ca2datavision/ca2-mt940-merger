@@ -77,6 +77,16 @@ const resources = {
         title: 'Processing Files',
         processing: 'File {{current}} of {{total}}',
         cancel: 'Cancel'
+      },
+      merge: {
+        title: 'Merge MT940 Statements',
+        selectAll: 'Select All',
+        deselectAll: 'Deselect All',
+        transactions: 'transactions',
+        selected: '{{count}} statement(s) selected',
+        preview: 'Preview',
+        previewTitle: 'Merged MT940 Preview',
+        download: 'Download MT940'
       }
     }
   },
@@ -154,6 +164,16 @@ const resources = {
         title: 'Se procesează fișierele',
         processing: 'Fișierul {{current}} din {{total}}',
         cancel: 'Anulează'
+      },
+      merge: {
+        title: 'Îmbinare Extrase MT940',
+        selectAll: 'Selectează Tot',
+        deselectAll: 'Deselectează Tot',
+        transactions: 'tranzacții',
+        selected: '{{count}} extras(e) selectat(e)',
+        preview: 'Previzualizare',
+        previewTitle: 'Previzualizare MT940 Îmbinat',
+        download: 'Descarcă MT940'
       }
     }
   }
