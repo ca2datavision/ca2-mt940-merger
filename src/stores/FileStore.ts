@@ -1,5 +1,6 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
+import { validateTextFile, extractZipSafely, SafetyError } from '../utils/safety';
 
 export interface MT940File {
   id: string;
@@ -78,32 +79,57 @@ class FileStore {
     makeAutoObservable(this);
   }
 
-  addFile = async (file: File): Promise<{ isDuplicate: boolean }> => {
+  private async processBuffer(buffer: ArrayBuffer, fileName: string): Promise<{ isDuplicate: boolean }> {
+    const contentHash = await this.computeHash(buffer);
+
+    if (this.fileHashes.has(contentHash)) {
+      return { isDuplicate: true };
+    }
+
+    const data = new Uint8Array(buffer);
+    validateTextFile(data);
+
+    const statements = await mt940.read(buffer);
     const id = generateUUID();
 
+    runInAction(() => {
+      this.fileHashes.add(contentHash);
+      this.files.push({
+        id,
+        name: fileName,
+        contentHash,
+        parsed: { statements }
+      });
+    });
+
+    return { isDuplicate: false };
+  }
+
+  addFile = async (file: File): Promise<{ isDuplicate: boolean }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const buffer = reader.result as ArrayBuffer;
-          const contentHash = await this.computeHash(buffer);
 
-          if (this.fileHashes.has(contentHash)) {
-            resolve({ isDuplicate: true });
-            return;
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            const extractedFiles = await extractZipSafely(buffer);
+            let anyAdded = false;
+
+            for (const extracted of extractedFiles) {
+              if (!extracted.name.toLowerCase().endsWith('.sta') &&
+                  !extracted.name.toLowerCase().endsWith('.mt940')) {
+                continue;
+              }
+              const result = await this.processBuffer(extracted.content.buffer, extracted.name);
+              if (!result.isDuplicate) anyAdded = true;
+            }
+
+            resolve({ isDuplicate: !anyAdded });
+          } else {
+            const result = await this.processBuffer(buffer, file.name);
+            resolve(result);
           }
-
-          const statements = await mt940.read(buffer);
-          runInAction(() => {
-            this.fileHashes.add(contentHash);
-            this.files.push({
-              id,
-              name: file.name,
-              contentHash,
-              parsed: { statements }
-            });
-          });
-          resolve({ isDuplicate: false });
         } catch (error) {
           reject(error);
         }
