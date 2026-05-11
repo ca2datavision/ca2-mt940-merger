@@ -53,6 +53,13 @@ export interface FailedFile {
   reason: string;
 }
 
+export interface AddFileResult {
+  addedCount: number;
+  duplicateCount: number;
+  ignoredCount: number;
+  failedCount: number;
+}
+
 class FileStore {
   files: MT940File[] = [];
   selectedFileId: string | null = null;
@@ -117,7 +124,7 @@ class FileStore {
     return { isDuplicate: false };
   }
 
-  addFile = async (file: File): Promise<{ isDuplicate: boolean }> => {
+  addFile = async (file: File): Promise<AddFileResult> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async () => {
@@ -126,13 +133,18 @@ class FileStore {
 
           if (file.name.toLowerCase().endsWith('.zip')) {
             const { files: extractedFiles, ignored } = await extractZipSafely(buffer);
-            let anyAdded = false;
+            let addedCount = 0;
+            let duplicateCount = 0;
             const failed: FailedFile[] = [];
 
             for (const extracted of extractedFiles) {
               try {
                 const result = await this.processBuffer(extracted.content.buffer, extracted.name);
-                if (!result.isDuplicate) anyAdded = true;
+                if (result.isDuplicate) {
+                  duplicateCount++;
+                } else {
+                  addedCount++;
+                }
               } catch (err) {
                 const reason = err instanceof Error ? err.message : String(err);
                 failed.push({ name: extracted.name, reason });
@@ -144,10 +156,29 @@ class FileStore {
               this.zipFailed = failed;
             });
 
-            resolve({ isDuplicate: !anyAdded });
+            resolve({
+              addedCount,
+              duplicateCount,
+              ignoredCount: ignored.length,
+              failedCount: failed.length,
+            });
           } else {
-            const result = await this.processBuffer(buffer, file.name);
-            resolve(result);
+            try {
+              const result = await this.processBuffer(buffer, file.name);
+              resolve({
+                addedCount: result.isDuplicate ? 0 : 1,
+                duplicateCount: result.isDuplicate ? 1 : 0,
+                ignoredCount: 0,
+                failedCount: 0,
+              });
+            } catch (err) {
+              resolve({
+                addedCount: 0,
+                duplicateCount: 0,
+                ignoredCount: 0,
+                failedCount: 1,
+              });
+            }
           }
         } catch (error) {
           reject(error);
