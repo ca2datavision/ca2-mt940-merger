@@ -16,6 +16,7 @@ export interface ValidationIssue {
   statementIndex?: number;
   transactionIndex?: number;
   field?: string;
+  lineNumber?: number;
 }
 
 export interface Balance {
