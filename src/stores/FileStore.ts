@@ -1,6 +1,6 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
-import { validateTextFile, extractZipSafely } from '../utils/safety';
+import { validateTextFile, extractZipSafely, type IgnoredFile } from '../utils/safety';
 import { decodeText } from '../utils/encoding';
 import { validateFileContent, validateContinuity, detectAllDuplicates } from '../validation';
 import type { ValidationIssue, Statement } from '../types/validation';
@@ -48,11 +48,18 @@ function generateUUID(): string {
   });
 }
 
+export interface FailedFile {
+  name: string;
+  reason: string;
+}
+
 class FileStore {
   files: MT940File[] = [];
   selectedFileId: string | null = null;
   showCSVPreview: boolean = false;
   batchIssues: ValidationIssue[] = [];
+  zipIgnored: IgnoredFile[] = [];
+  zipFailed: FailedFile[] = [];
   private fileHashes: Set<string> = new Set();
 
   // SHA-256 hash for duplicate detection. Requires secure context (HTTPS).
@@ -118,13 +125,24 @@ class FileStore {
           const buffer = reader.result as ArrayBuffer;
 
           if (file.name.toLowerCase().endsWith('.zip')) {
-            const { files: extractedFiles } = await extractZipSafely(buffer);
+            const { files: extractedFiles, ignored } = await extractZipSafely(buffer);
             let anyAdded = false;
+            const failed: FailedFile[] = [];
 
             for (const extracted of extractedFiles) {
-              const result = await this.processBuffer(extracted.content.buffer, extracted.name);
-              if (!result.isDuplicate) anyAdded = true;
+              try {
+                const result = await this.processBuffer(extracted.content.buffer, extracted.name);
+                if (!result.isDuplicate) anyAdded = true;
+              } catch (err) {
+                const reason = err instanceof Error ? err.message : String(err);
+                failed.push({ name: extracted.name, reason });
+              }
             }
+
+            runInAction(() => {
+              this.zipIgnored = ignored;
+              this.zipFailed = failed;
+            });
 
             resolve({ isDuplicate: !anyAdded });
           } else {
@@ -327,7 +345,16 @@ class FileStore {
       this.selectedFileId = null;
       this.showCSVPreview = false;
       this.batchIssues = [];
+      this.zipIgnored = [];
+      this.zipFailed = [];
       this.fileHashes.clear();
+    });
+  };
+
+  clearZipStatus = () => {
+    runInAction(() => {
+      this.zipIgnored = [];
+      this.zipFailed = [];
     });
   };
 }
