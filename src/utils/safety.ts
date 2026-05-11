@@ -64,7 +64,7 @@ export interface ExtractedFile {
  * Uses internal _data.uncompressedSize property (JSZip 3.x).
  * Returns 0 if metadata unavailable - actual size check still occurs after decompression.
  */
-function getZipEntryDeclaredSize(file: JSZip.JSZipObject): number {
+export function getZipEntryDeclaredSize(file: JSZip.JSZipObject): number {
   const meta = file as unknown as { _data?: { uncompressedSize?: number } };
   return meta._data?.uncompressedSize ?? 0;
 }

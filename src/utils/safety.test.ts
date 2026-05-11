@@ -5,6 +5,7 @@ import {
   validateUtf8,
   validateTextFile,
   extractZipSafely,
+  getZipEntryDeclaredSize,
   ZIP_LIMITS,
 } from './safety';
 
@@ -87,5 +88,23 @@ describe('extractZipSafely', () => {
     const zipData = await zip.generateAsync({ type: 'arraybuffer' });
 
     await expect(extractZipSafely(zipData)).rejects.toThrow(/exceeds.*limit/);
+  });
+});
+
+describe('getZipEntryDeclaredSize', () => {
+  it('returns declared size when metadata present', async () => {
+    const zip = new JSZip();
+    zip.file('test.txt', 'Hello World');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+    const loadedZip = await JSZip.loadAsync(zipData);
+    const entry = loadedZip.files['test.txt'];
+
+    const size = getZipEntryDeclaredSize(entry);
+    expect(size).toBe(11); // 'Hello World'.length
+  });
+
+  it('returns 0 when metadata missing', () => {
+    const mockEntry = {} as JSZip.JSZipObject;
+    expect(getZipEntryDeclaredSize(mockEntry)).toBe(0);
   });
 });
