@@ -1,13 +1,14 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
 import { validateTextFile, extractZipSafely } from '../utils/safety';
+import type { MT940ParsedData } from '../types/mt940';
 
 export interface MT940File {
   id: string;
   name: string;
   contentHash: string;
   isDuplicate?: boolean;
-  parsed?: any;
+  parsed?: MT940ParsedData;
 }
 
 export interface CSVRow {

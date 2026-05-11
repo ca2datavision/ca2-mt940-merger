@@ -12,6 +12,12 @@
  * :62F: Closing Balance (F=Final, M=Intermediate)
  */
 
+import type {
+  MT940ParsedData,
+  MT940Statement as MT940ParsedStatement,
+  MT940Transaction as MT940ParsedTransaction
+} from '../types/mt940';
+
 export interface MT940Transaction {
   entryDate?: string;
   valueDate?: string;
@@ -149,33 +155,33 @@ export function writeMT940(
   return lines.join('\r\n');
 }
 
-export function convertParsedToWritable(parsed: any): MT940Statement[] {
+export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement[] {
   if (!parsed?.statements) return [];
 
-  return parsed.statements.map((stmt: any) => ({
+  return parsed.statements.map((stmt: MT940ParsedStatement) => ({
     accountId: stmt.accountId,
-    statementNumber: stmt.statementNumber || '1',
-    sequenceNumber: stmt.sequenceNumber || '1',
+    statementNumber: stmt.number || '1',
+    sequenceNumber: '1',
     openingBalance: stmt.openingBalance ? {
       date: stmt.openingBalance.date,
-      amount: String(stmt.openingBalance.amount || 0),
+      amount: String(stmt.openingBalance.value || 0),
       currency: stmt.openingBalance.currency || 'EUR',
       isCredit: stmt.openingBalance.isCredit !== false
     } : undefined,
     closingBalance: stmt.closingBalance ? {
       date: stmt.closingBalance.date,
-      amount: String(stmt.closingBalance.amount || 0),
+      amount: String(stmt.closingBalance.value || 0),
       currency: stmt.closingBalance.currency || 'EUR',
       isCredit: stmt.closingBalance.isCredit !== false
     } : undefined,
-    transactions: (stmt.transactions || []).map((tx: any) => ({
+    transactions: (stmt.transactions || []).map((tx: MT940ParsedTransaction) => ({
       entryDate: tx.entryDate,
       valueDate: tx.valueDate || tx.entryDate,
       amount: String(tx.amount || 0),
       currency: tx.currency,
-      transactionType: tx.transactionType,
+      transactionType: tx.code,
       description: tx.description,
-      reference: tx.reference || 'NONREF',
+      reference: tx.customerReference || 'NONREF',
       extraDetails: tx.extraDetails
     }))
   }));
