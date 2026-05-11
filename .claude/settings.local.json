@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/data/projects/ca2-mt940-merger/.claude/hooks/devchain-relay.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

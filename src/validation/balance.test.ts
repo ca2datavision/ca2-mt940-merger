@@ -7,7 +7,6 @@ import {
   validateAmount,
   parseAmount,
   convertDateToISO,
-  validateRawBalance,
   validateCurrencyConsistency,
   validateStatementBalances,
 } from './balance';

@@ -4,7 +4,6 @@ import {
   groupStatements,
   sortStatements,
   detectDuplicateStatementNumbers,
-  detectOutOfOrder,
   validateBalanceContinuity,
   validateContinuity,
 } from './continuity';

@@ -2,7 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import * as mt940 from 'mt940-js';
 import { validateTextFile, extractZipSafely } from '../utils/safety';
 import { decodeText } from '../utils/encoding';
-import { validateFileContent, type FileValidationResult } from '../validation';
+import { validateFileContent } from '../validation';
 import type { ValidationIssue } from '../types/validation';
 import type { MT940ParsedData } from '../types/mt940';
 

@@ -53,7 +53,6 @@ export function validateDate(date: string, field: string, statementIndex?: numbe
     return issues;
   }
 
-  const year = parseInt(date.slice(0, 2), 10);
   const month = parseInt(date.slice(2, 4), 10);
   const day = parseInt(date.slice(4, 6), 10);
 
