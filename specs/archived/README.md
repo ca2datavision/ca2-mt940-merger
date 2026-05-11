@@ -11,13 +11,13 @@ Processed raw documents from `/intake/`:
 - Summary/metadata markdown for local-only docs (when original cannot be committed)
 
 ### `/archived/validated/`
-Superseded VRDs:
-- When a newer version of a VRD is created (e.g., v2), move v1 here
-- Folder location signals "archived" status - no filename rename required
+Completed or superseded VRDs:
+- **IMPLEMENTED:** When all epics for a VRD are complete, move here and rename to `-IMPLEMENTED`
+- **SUPERSEDED:** When a newer version of a VRD is created (e.g., v2), move v1 here and rename to `-SUPERSEDED`
 
 ## Archive Rules
-- **Moving here = archived** - no need to rename files
-- Original filenames are preserved
+- **Rename files** to reflect terminal status: `-IMPLEMENTED` or `-SUPERSEDED`
+- Update VRD metadata header to match new status
 - Documents should never be deleted (audit trail)
 
 ## Summary/Metadata Record for Local-Only Documents

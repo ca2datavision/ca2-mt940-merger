@@ -1,6 +1,6 @@
 # [Feature Name] - v[N] - [STATUS]
 
-> **Status:** DRAFT | VALIDATED | ARCHIVED
+> **Status:** DRAFT | VALIDATED | IMPLEMENTED | SUPERSEDED
 > **Version:** [N]
 > **Last Updated:** YYYY-MM-DD
 > **Author:** [Business Analyst name/agent]
