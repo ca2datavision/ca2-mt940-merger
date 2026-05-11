@@ -87,6 +87,6 @@ describe('extractZipSafely', () => {
     zip.file('large.txt', 'x'.repeat(ZIP_LIMITS.MAX_FILE_SIZE + 1));
     const zipData = await zip.generateAsync({ type: 'arraybuffer' });
 
-    await expect(extractZipSafely(zipData)).rejects.toThrow('exceeds size limit');
+    await expect(extractZipSafely(zipData)).rejects.toThrow(/exceeds.*limit/);
   });
 });
