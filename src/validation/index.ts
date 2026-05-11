@@ -263,3 +263,4 @@ export {
 export { validateStatementBalances, validateCurrencyConsistency } from './balance';
 export { validateArithmetic, getSignedBalance } from './arithmetic';
 export { validateContinuity, groupStatements, sortStatements } from './continuity';
+export { analyzeMergeEligibility, type MergeAnalysisResult } from './merge';
