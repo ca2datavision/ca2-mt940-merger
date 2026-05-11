@@ -124,6 +124,64 @@ describe('extractZipSafely', () => {
     expect(ignored.some(i => i.name === 'subdir/.DS_Store')).toBe(true);
     expect(ignored.every(i => i.reason === 'macOS metadata')).toBe(true);
   });
+
+  it('ignores files with unsupported extensions', async () => {
+    const zip = new JSZip();
+    zip.file('data.sta', 'valid content');
+    zip.file('report.pdf', 'pdf content');
+    zip.file('image.png', 'image data');
+    zip.file('document.docx', 'docx data');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('data.sta');
+    expect(ignored).toHaveLength(3);
+    expect(ignored.every(i => i.reason === 'unsupported extension')).toBe(true);
+    expect(ignored.map(i => i.name).sort()).toEqual(['document.docx', 'image.png', 'report.pdf']);
+  });
+
+  it('allows extensionless files', async () => {
+    const zip = new JSZip();
+    zip.file('mt940data', 'extensionless content');
+    zip.file('data.sta', 'sta content');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(2);
+    expect(files.map(f => f.name).sort()).toEqual(['data.sta', 'mt940data']);
+    expect(ignored).toHaveLength(0);
+  });
+
+  it('allows all supported extensions (.sta, .txt, .mt940, .mta)', async () => {
+    const zip = new JSZip();
+    zip.file('file1.sta', 'content');
+    zip.file('file2.txt', 'content');
+    zip.file('file3.mt940', 'content');
+    zip.file('file4.mta', 'content');
+    zip.file('file5.STA', 'uppercase extension');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(5);
+    expect(ignored).toHaveLength(0);
+  });
+
+  it('handles invalid ZIP data gracefully', async () => {
+    const invalidData = new ArrayBuffer(100);
+
+    await expect(extractZipSafely(invalidData)).rejects.toThrow('Failed to read ZIP');
+  });
+
+  it('extracts non-encrypted entries while ignoring encrypted ones', async () => {
+    const zip = new JSZip();
+    zip.file('normal.sta', 'valid content');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('normal.sta');
+  });
 });
 
 describe('getZipEntryDeclaredSize', () => {

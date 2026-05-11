@@ -171,7 +171,7 @@ class FileStore {
                 ignoredCount: 0,
                 failedCount: 0,
               });
-            } catch (err) {
+            } catch {
               resolve({
                 addedCount: 0,
                 duplicateCount: 0,
