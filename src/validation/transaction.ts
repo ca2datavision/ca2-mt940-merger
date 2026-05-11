@@ -87,7 +87,7 @@ function parseAmount(amountStr: string): Decimal | null {
   }
 }
 
-function parse61Line(content: string): {
+export function parse61Line(content: string): {
   valueDate?: string;
   entryDate?: string;
   isCredit?: boolean;

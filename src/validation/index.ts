@@ -1,6 +1,7 @@
+import Decimal from 'decimal.js';
 import type { ValidationIssue, Balance, Transaction, Statement } from '../types/validation';
 import { validateStructure } from './structural';
-import { validateTransactions, type ParsedTransaction } from './transaction';
+import { validateTransactions, type ParsedTransaction, parse61Line } from './transaction';
 import { parseForwardBalances } from './forwardBalance';
 import { parseBalanceTag, validateRawBalance, validateStatementBalances } from './balance';
 import { validateArithmetic } from './arithmetic';
@@ -29,11 +30,32 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
   const lines = content.split('\n');
 
   let current: ParsedStatementData | null = null;
+  let pendingTxn: ParsedTransaction | null = null;
+  let lineNum = 0;
 
   for (const line of lines) {
-    // Account identification :25:
+    lineNum++;
+
+    // Statement terminator (hyphen on its own line)
+    if (line.trim() === '-') {
+      if (pendingTxn && current) {
+        current.transactions.push(pendingTxn);
+        pendingTxn = null;
+      }
+      if (current) {
+        statements.push(current);
+        current = null;
+      }
+      continue;
+    }
+
+    // Account identification :25: starts new statement
     const accountMatch = line.match(/^:25:(.+)/);
     if (accountMatch) {
+      if (pendingTxn && current) {
+        current.transactions.push(pendingTxn);
+        pendingTxn = null;
+      }
       if (current) statements.push(current);
       current = {
         accountId: accountMatch[1].trim(),
@@ -65,9 +87,30 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
       continue;
     }
 
+    // Transaction :61:
+    const txnMatch = line.match(/^:61:(.+)/);
+    if (txnMatch) {
+      if (pendingTxn) current.transactions.push(pendingTxn);
+      const txnContent = txnMatch[1];
+      pendingTxn = parse61Content(txnContent, lineNum);
+      continue;
+    }
+
+    // Narrative :86: (belongs to pending transaction)
+    const narrativeMatch = line.match(/^:86:(.+)/);
+    if (narrativeMatch && pendingTxn) {
+      pendingTxn.narrative = narrativeMatch[1];
+      pendingTxn.narrativeLineNumber = lineNum;
+      continue;
+    }
+
     // Closing balance :62F: or :62M:
     const closingMatch = line.match(/^:(62[FM]):(.+)/);
     if (closingMatch) {
+      if (pendingTxn) {
+        current.transactions.push(pendingTxn);
+        pendingTxn = null;
+      }
       const raw = parseBalanceTag(`:${closingMatch[1]}:${closingMatch[2]}`);
       if (raw) {
         const result = validateRawBalance(raw, 'closingBalance');
@@ -88,8 +131,25 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
     }
   }
 
+  if (pendingTxn && current) current.transactions.push(pendingTxn);
   if (current) statements.push(current);
   return statements;
+}
+
+function parse61Content(content: string, lineNumber: number): ParsedTransaction {
+  const result = parse61Line(content);
+  const effectiveCredit = result.isReversal ? !result.isCredit : result.isCredit;
+  return {
+    lineNumber,
+    valueDate: result.valueDate || '',
+    entryDate: result.entryDate,
+    isCredit: result.isCredit ?? false,
+    isReversal: result.isReversal,
+    effectiveIsCredit: effectiveCredit ?? false,
+    amount: result.amount || new Decimal(0),
+    transactionType: result.transactionType || '',
+    reference: result.reference || '',
+  };
 }
 
 function convertTransaction(txn: ParsedTransaction, currency: string, index: number): Transaction {
@@ -123,7 +183,7 @@ export function validateFileContent(
   const hasStructuralErrors = structuralIssues.some(i => i.severity === 'error');
 
   // Transaction validation
-  const { issues: txnIssues, transactions: parsedTxns, summary } = validateTransactions(content, fileId, fileName);
+  const { issues: txnIssues, summary } = validateTransactions(content, fileId, fileName);
   issues.push(...txnIssues);
 
   // Forward balance validation
@@ -150,7 +210,8 @@ export function validateFileContent(
 
     // Arithmetic validation (if we have both balances)
     if (ps.openingBalance && ps.closingBalance) {
-      const stmtTxns = parsedTxns.map((t, idx) => convertTransaction(t, currency, idx));
+      // Use statement-specific transactions, not all file transactions
+      const stmtTxns = ps.transactions.map((t, idx) => convertTransaction(t, currency, idx));
       const arithmeticResult = validateArithmetic(
         ps.openingBalance,
         ps.closingBalance,
