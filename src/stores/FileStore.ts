@@ -118,7 +118,7 @@ class FileStore {
           const buffer = reader.result as ArrayBuffer;
 
           if (file.name.toLowerCase().endsWith('.zip')) {
-            const extractedFiles = await extractZipSafely(buffer);
+            const { files: extractedFiles } = await extractZipSafely(buffer);
             let anyAdded = false;
 
             for (const extracted of extractedFiles) {

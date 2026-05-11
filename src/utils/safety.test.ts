@@ -67,9 +67,10 @@ describe('extractZipSafely', () => {
     zip.file('test.txt', 'Hello World');
     const zipData = await zip.generateAsync({ type: 'arraybuffer' });
 
-    const files = await extractZipSafely(zipData);
+    const { files, ignored } = await extractZipSafely(zipData);
     expect(files).toHaveLength(1);
     expect(files[0].name).toBe('test.txt');
+    expect(ignored).toHaveLength(0);
   });
 
   it('rejects ZIP with too many entries', async () => {
@@ -88,6 +89,35 @@ describe('extractZipSafely', () => {
     const zipData = await zip.generateAsync({ type: 'arraybuffer' });
 
     await expect(extractZipSafely(zipData)).rejects.toThrow(/exceeds.*limit/);
+  });
+
+  it('filters out __MACOSX directory', async () => {
+    const zip = new JSZip();
+    zip.file('data.sta', 'content');
+    zip.file('__MACOSX/._data.sta', 'metadata');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('data.sta');
+    expect(ignored.find(i => i.name === '__MACOSX/._data.sta')).toBeDefined();
+    expect(ignored[0].reason).toBe('macOS metadata');
+  });
+
+  it('filters out .DS_Store files', async () => {
+    const zip = new JSZip();
+    zip.file('data.sta', 'content');
+    zip.file('.DS_Store', 'metadata');
+    zip.file('subdir/.DS_Store', 'metadata');
+    const zipData = await zip.generateAsync({ type: 'arraybuffer' });
+
+    const { files, ignored } = await extractZipSafely(zipData);
+    expect(files).toHaveLength(1);
+    expect(files[0].name).toBe('data.sta');
+    expect(ignored).toHaveLength(2);
+    expect(ignored.some(i => i.name === '.DS_Store')).toBe(true);
+    expect(ignored.some(i => i.name === 'subdir/.DS_Store')).toBe(true);
+    expect(ignored.every(i => i.reason === 'macOS metadata')).toBe(true);
   });
 });
 
