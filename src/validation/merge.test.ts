@@ -142,4 +142,52 @@ describe('analyzeMergeEligibility', () => {
       expect(result.singleStatement.blockers.some(b => b.code === 'MERGE_BALANCE_GAP')).toBe(true);
     });
   });
+
+  describe('subset selection filtering', () => {
+    it('returns eligible when passed only issues for selected files (no errors)', () => {
+      const validStatement = makeStatement({ id: 'stmt-1', fileId: 'file-valid' });
+      const filteredIssues: ValidationIssue[] = [];
+
+      const result = analyzeMergeEligibility([validStatement], filteredIssues);
+
+      expect(result.multiMessage.eligible).toBe(true);
+      expect(result.multiMessage.blockers).toHaveLength(0);
+    });
+
+    it('returns ineligible when passed issues include errors', () => {
+      const statement = makeStatement({ id: 'stmt-1', fileId: 'file-1' });
+      const issuesForSelectedFile: ValidationIssue[] = [
+        { severity: 'error', code: 'TEST_ERROR', message: 'Error in selected file', fileId: 'file-1' },
+      ];
+
+      const result = analyzeMergeEligibility([statement], issuesForSelectedFile);
+
+      expect(result.multiMessage.eligible).toBe(false);
+      expect(result.multiMessage.blockers).toHaveLength(1);
+    });
+
+    it('pre-filtering issues by fileId enables subset merge', () => {
+      const stmt1 = makeStatement({ id: 'stmt-1', fileId: 'file-1' });
+      const stmt2 = makeStatement({ id: 'stmt-2', fileId: 'file-2' });
+      const mixedIssues: ValidationIssue[] = [
+        { severity: 'error', code: 'ERR1', message: 'Error file 1', fileId: 'file-1' },
+        { severity: 'error', code: 'ERR2', message: 'Error file 2', fileId: 'file-2' },
+      ];
+
+      const file1Issues = mixedIssues.filter(i => i.fileId === 'file-1');
+      const file2Issues = mixedIssues.filter(i => i.fileId === 'file-2');
+
+      const resultWithFile1Issues = analyzeMergeEligibility([stmt1], file1Issues);
+      expect(resultWithFile1Issues.multiMessage.eligible).toBe(false);
+
+      const resultWithNoIssues = analyzeMergeEligibility([stmt1], []);
+      expect(resultWithNoIssues.multiMessage.eligible).toBe(true);
+
+      const resultFile2WithFile2Issues = analyzeMergeEligibility([stmt2], file2Issues);
+      expect(resultFile2WithFile2Issues.multiMessage.eligible).toBe(false);
+
+      const resultFile2WithNoIssues = analyzeMergeEligibility([stmt2], []);
+      expect(resultFile2WithNoIssues.multiMessage.eligible).toBe(true);
+    });
+  });
 });

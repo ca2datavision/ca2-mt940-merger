@@ -94,6 +94,28 @@ describe('mergeSingleStatement', () => {
     expect(merged.closingBalance.amount.equals(new Decimal('1300'))).toBe(true);
   });
 
+  it('recalculates closing balance: opening + credits - debits', () => {
+    const stmt = makeStatement({
+      id: 'stmt-1',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('5000'), currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: new Decimal('9999'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-1', entryDate: '2024-01-05', amount: new Decimal('1000'), isCredit: true }),
+        makeTransaction({ id: 'txn-2', entryDate: '2024-01-10', amount: new Decimal('250.50'), isCredit: false }),
+        makeTransaction({ id: 'txn-3', entryDate: '2024-01-15', amount: new Decimal('750'), isCredit: true }),
+        makeTransaction({ id: 'txn-4', entryDate: '2024-01-20', amount: new Decimal('100'), isCredit: false }),
+      ],
+    });
+
+    const merged = mergeSingleStatement([stmt]);
+
+    const expected = new Decimal('5000').plus('1000').minus('250.50').plus('750').minus('100');
+    expect(merged.closingBalance.amount.equals(expected)).toBe(true);
+    expect(merged.closingBalance.date).toBe('2024-01-20');
+    expect(merged.closingBalance.currency).toBe('EUR');
+    expect(merged.closingBalance.isCredit).toBe(true);
+  });
+
   it('throws error for empty statements array', () => {
     expect(() => mergeSingleStatement([])).toThrow('No statements to merge');
   });
