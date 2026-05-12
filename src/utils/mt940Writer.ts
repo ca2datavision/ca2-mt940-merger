@@ -23,6 +23,7 @@ export interface MT940Transaction {
   valueDate?: string;
   amount?: string;
   currency?: string;
+  isCredit?: boolean;
   transactionType?: string;
   description?: string;
   reference?: string;
@@ -72,12 +73,6 @@ function formatAmount(amount: string | undefined): string {
   return absNum.toFixed(2).replace('.', ',');
 }
 
-function isDebit(amount: string | undefined): boolean {
-  if (!amount) return false;
-  const num = parseFloat(amount.replace(',', '.'));
-  return num < 0;
-}
-
 function formatBalanceLine(
   tag: string,
   balance: MT940Statement['openingBalance']
@@ -93,7 +88,7 @@ function formatBalanceLine(
 function formatTransactionLine(tx: MT940Transaction): string {
   const valueDate = formatDate(tx.valueDate || tx.entryDate);
   const entryDate = formatDate(tx.entryDate)?.slice(2, 6) || '';
-  const dcMark = isDebit(tx.amount) ? 'D' : 'C';
+  const dcMark = tx.isCredit ? 'C' : 'D';
   const amount = formatAmount(tx.amount);
   const txType = (tx.transactionType || 'NTRF').slice(0, 4).padEnd(4, ' ');
   const ref = (tx.reference || 'NONREF').slice(0, 16);
@@ -179,6 +174,7 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
       valueDate: tx.valueDate || tx.entryDate,
       amount: String(tx.amount || 0),
       currency: tx.currency,
+      isCredit: tx.isCredit,
       transactionType: tx.code,
       description: tx.description,
       reference: tx.customerReference || 'NONREF',
