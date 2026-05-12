@@ -11,6 +11,7 @@ export interface ParsedTransaction {
   amount: Decimal;
   transactionType: string;
   reference: string;
+  supplementaryDetails?: string;
   narrative?: string;
   narrativeLineNumber?: number;
 }

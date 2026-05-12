@@ -132,6 +132,7 @@ export const MergePanel: React.FC = observer(() => {
         transactionType: t.transactionType,
         reference: t.customerReference,
         description: t.description,
+        supplementaryDetails: t.supplementaryDetails,
       })),
     }]);
   }, [selectedValidationStatements]);

@@ -39,6 +39,7 @@ export interface Transaction {
   customerReference: string;
   bankReference: string;
   description: string;
+  supplementaryDetails?: string;
   extraDetails?: {
     name?: string;
     address?: string;

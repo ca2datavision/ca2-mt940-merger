@@ -95,6 +95,12 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
       continue;
     }
 
+    // Supplementary details line (continuation after :61: without tag prefix)
+    if (pendingTxn && !pendingTxn.narrative && !line.startsWith(':') && line.trim()) {
+      pendingTxn.supplementaryDetails = line.trim();
+      continue;
+    }
+
     // Narrative :86: (belongs to pending transaction)
     const narrativeMatch = line.match(/^:86:(.+)/);
     if (narrativeMatch && pendingTxn) {
@@ -170,6 +176,7 @@ function convertTransaction(txn: ParsedTransaction, currency: string, index: num
     customerReference: txn.reference,
     bankReference: '',
     description: txn.narrative || '',
+    supplementaryDetails: txn.supplementaryDetails,
   };
 }
 

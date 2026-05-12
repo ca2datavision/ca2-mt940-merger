@@ -269,6 +269,38 @@ describe('Round-trip validation: merge → write → parse → validate', () => 
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it('preserves :61: supplementary details through round-trip', () => {
+    const writable = [{
+      accountId: 'RO49TESTSUPPL',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1100.00', currency: 'EUR', isCredit: true },
+      transactions: [
+        {
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100.00',
+          isCredit: true,
+          transactionType: 'NMSC',
+          reference: 'REF001',
+          description: 'Payment',
+          supplementaryDetails: 'PLATA ZILIER',
+        },
+      ],
+    }];
+
+    const mt940Output = writeMT940(writable).replace(/\r\n/g, '\n');
+
+    expect(mt940Output).toContain(':61:');
+    expect(mt940Output).toContain('PLATA ZILIER');
+
+    const result = validateFileContent(mt940Output, 'test-file', 'supplementary.mt940');
+    const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
+    expect(errors).toHaveLength(0);
+    expect(result.statements[0].transactions[0].supplementaryDetails).toBe('PLATA ZILIER');
+  });
+
   it('round-trips long narrative without validation errors', () => {
     const longDesc = 'Payment for services: ' + 'consulting development testing '.repeat(20);
     const writable = [{
