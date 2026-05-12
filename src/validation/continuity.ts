@@ -128,7 +128,11 @@ export function validateContinuity(statements: Statement[]): ContinuityValidatio
   const multipleAccounts = groups.length > 1;
 
   if (multipleAccounts) {
-    const accounts = groups.map(g => g.accountId).join(', ');
+    const uniqueAccountIds = new Set(groups.map(g => g.accountId));
+    const showCurrency = uniqueAccountIds.size < groups.length;
+    const accounts = groups.map(g =>
+      showCurrency ? `${g.accountId} (${g.currency})` : g.accountId
+    ).join(', ');
     issues.push(createIssue(
       'warning',
       'MULTIPLE_ACCOUNTS',

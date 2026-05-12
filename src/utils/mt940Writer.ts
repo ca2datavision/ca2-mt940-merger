@@ -68,6 +68,7 @@ export interface MT940Statement {
     isCredit?: boolean;
   };
   statementInfo?: string;
+  sourceStatementNumbers?: string[];
   transactions?: MT940Transaction[];
 }
 
@@ -161,6 +162,10 @@ export function writeMT940(
 
     if (stmt.openingBalance) {
       lines.push(formatBalanceLine('60F', stmt.openingBalance));
+    }
+
+    if (stmt.sourceStatementNumbers && stmt.sourceStatementNumbers.length > 1) {
+      lines.push(`:86:Merged from statements: ${stmt.sourceStatementNumbers.join(', ')}`);
     }
 
     for (const tx of stmt.transactions || []) {

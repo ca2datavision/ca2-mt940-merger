@@ -10,6 +10,7 @@ export interface MergedStatement {
   closingBalance: Balance;
   transactions: Transaction[];
   sourceStatementIds: string[];
+  sourceStatementNumbers: string[];
 }
 
 export interface MergePreview {
@@ -66,6 +67,7 @@ export function mergeSingleStatement(statements: Statement[]): MergedStatement {
       closingBalance: recalculated,
       transactions: [...stmt.transactions],
       sourceStatementIds: [stmt.id],
+      sourceStatementNumbers: [stmt.statementNumber],
     };
   }
 
@@ -101,6 +103,7 @@ export function mergeSingleStatement(statements: Statement[]): MergedStatement {
     closingBalance: recalculatedClosing,
     transactions: allTransactions,
     sourceStatementIds: sorted.map(s => s.id),
+    sourceStatementNumbers: sorted.map(s => s.statementNumber),
   };
 }
 

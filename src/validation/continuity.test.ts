@@ -165,6 +165,34 @@ describe('validateContinuity', () => {
     expect(result.issues.some(i => i.code === 'MULTIPLE_ACCOUNTS')).toBe(true);
   });
 
+  it('shows currency when same account has different currencies', () => {
+    const statements = [
+      makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-05', 'EUR'),
+      makeStatement('2', 'ACC1', '1', 200, 250, '2026-05-01', '2026-05-05', 'RON'),
+    ];
+
+    const result = validateContinuity(statements);
+    expect(result.multipleAccounts).toBe(true);
+    const issue = result.issues.find(i => i.code === 'MULTIPLE_ACCOUNTS');
+    expect(issue).toBeDefined();
+    expect(issue!.message).toContain('ACC1 (EUR)');
+    expect(issue!.message).toContain('ACC1 (RON)');
+  });
+
+  it('does not show currency when accounts are different', () => {
+    const statements = [
+      makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-05', 'EUR'),
+      makeStatement('2', 'ACC2', '1', 200, 250, '2026-05-01', '2026-05-05', 'EUR'),
+    ];
+
+    const result = validateContinuity(statements);
+    expect(result.multipleAccounts).toBe(true);
+    const issue = result.issues.find(i => i.code === 'MULTIPLE_ACCOUNTS');
+    expect(issue).toBeDefined();
+    expect(issue!.message).toContain('ACC1, ACC2');
+    expect(issue!.message).not.toContain('(EUR)');
+  });
+
   it('validates single account stream', () => {
     const statements = [
       makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-05'),

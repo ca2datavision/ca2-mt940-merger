@@ -143,6 +143,7 @@ export const MergePanel: React.FC = observer(() => {
         currency: merged.closingBalance.currency,
         amount: merged.closingBalance.amount.toString(),
       },
+      sourceStatementNumbers: merged.sourceStatementNumbers,
       transactions: merged.transactions.map(t => ({
         valueDate: t.valueDate,
         entryDate: t.entryDate,

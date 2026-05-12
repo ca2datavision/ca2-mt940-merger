@@ -355,3 +355,83 @@ describe('convertParsedToWritable Mapping', () => {
     expect(output).toContain(':65:C240201EUR800,00');
   });
 });
+
+describe('MT940 Writer Audit Trail :86:', () => {
+  it('outputs audit :86: tag for merged statements', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '001-003',
+      sequenceNumber: '1',
+      transactionReference: 'STMT001-003',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-03-31', amount: '1500.00', currency: 'EUR', isCredit: true },
+      sourceStatementNumbers: ['001', '002', '003'],
+      transactions: [],
+    };
+
+    const output = writeMT940([stmt]);
+
+    expect(output).toContain(':86:Merged from statements: 001, 002, 003');
+  });
+
+  it('positions audit :86: after :60F: opening balance', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '001-002',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-02-28', amount: '1200.00', currency: 'EUR', isCredit: true },
+      sourceStatementNumbers: ['001', '002'],
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+    const lines = output.split(/\r?\n/);
+
+    const openingIdx = lines.findIndex(l => l.startsWith(':60F:'));
+    const auditIdx = lines.findIndex(l => l.startsWith(':86:Merged from'));
+    const txnIdx = lines.findIndex(l => l.startsWith(':61:'));
+
+    expect(openingIdx).toBeGreaterThan(-1);
+    expect(auditIdx).toBeGreaterThan(openingIdx);
+    expect(txnIdx).toBeGreaterThan(auditIdx);
+  });
+
+  it('does not output audit :86: for single statement', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '001',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1100.00', currency: 'EUR', isCredit: true },
+      sourceStatementNumbers: ['001'],
+      transactions: [],
+    };
+
+    const output = writeMT940([stmt]);
+
+    expect(output).not.toContain('Merged from statements');
+  });
+
+  it('does not output audit :86: when sourceStatementNumbers not provided', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '001',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1100.00', currency: 'EUR', isCredit: true },
+      transactions: [],
+    };
+
+    const output = writeMT940([stmt]);
+
+    expect(output).not.toContain('Merged from statements');
+  });
+});
