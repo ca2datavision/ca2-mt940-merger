@@ -105,7 +105,7 @@ function recalculateClosingBalance(
   opening: Balance,
   transactions: Transaction[]
 ): Balance {
-  let balance = opening.amount;
+  let balance = opening.isCredit ? opening.amount : opening.amount.neg();
 
   for (const txn of transactions) {
     if (txn.isCredit) {

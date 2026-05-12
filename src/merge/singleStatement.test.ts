@@ -201,6 +201,41 @@ describe('validateMergeResult', () => {
   });
 });
 
+describe('debit opening balance handling', () => {
+  it('correctly calculates closing when opening balance is debit', () => {
+    const stmt = makeStatement({
+      id: 'stmt-debit',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('500'), currency: 'EUR', isCredit: false },
+      closingBalance: { date: '2024-01-31', amount: new Decimal('9999'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-1', entryDate: '2024-01-10', amount: new Decimal('1000'), isCredit: true }),
+      ],
+    });
+
+    const merged = mergeSingleStatement([stmt]);
+
+    expect(merged.closingBalance.amount.equals(new Decimal('500'))).toBe(true);
+    expect(merged.closingBalance.isCredit).toBe(true);
+  });
+
+  it('handles debit opening with mixed transactions', () => {
+    const stmt = makeStatement({
+      id: 'stmt-debit-2',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: false },
+      transactions: [
+        makeTransaction({ id: 'txn-1', entryDate: '2024-01-05', amount: new Decimal('500'), isCredit: true }),
+        makeTransaction({ id: 'txn-2', entryDate: '2024-01-10', amount: new Decimal('200'), isCredit: false }),
+      ],
+    });
+
+    const merged = mergeSingleStatement([stmt]);
+
+    const expected = new Decimal(-1000).plus(500).minus(200);
+    expect(merged.closingBalance.amount.equals(expected.abs())).toBe(true);
+    expect(merged.closingBalance.isCredit).toBe(false);
+  });
+});
+
 describe('transaction sorting', () => {
   it('sorts by valueDate when entryDates are equal across multiple statements', () => {
     const stmt1 = makeStatement({
