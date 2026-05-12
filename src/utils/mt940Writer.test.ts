@@ -68,6 +68,33 @@ describe('MT940 Writer', () => {
     expect(parsed[0].accountId).toBe(sampleStatement.accountId);
     expect(parsed[0].transactions).toHaveLength(1);
   });
+
+  it('preserves :61: supplementary line', () => {
+    const stmtWithSupp: MT940Statement = {
+      ...sampleStatement,
+      transactions: [{
+        ...sampleStatement.transactions![0],
+        supplementaryDetails: 'PLATA ZILIER',
+      }],
+    };
+    const output = writeMT940([stmtWithSupp]);
+    const lines = output.split(/\r?\n/);
+    const idx61 = lines.findIndex(l => l.startsWith(':61:'));
+    expect(idx61).toBeGreaterThan(-1);
+    expect(lines[idx61 + 1]).toBe('PLATA ZILIER');
+  });
+
+  it('round-trips :20: reference through full flow', async () => {
+    const stmtWithRef: MT940Statement = {
+      ...sampleStatement,
+      transactionReference: '73814260',
+    };
+    const output = writeMT940([stmtWithRef]);
+    const buffer = new TextEncoder().encode(output);
+    const parsed = await mt940.read(buffer.buffer);
+
+    expect(parsed[0].referenceNumber).toBe('73814260');
+  });
 });
 
 describe('MT940 Writer :86: Narrative', () => {
