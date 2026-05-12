@@ -4,7 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
 import { writeMT940, convertParsedToWritable } from '../utils/mt940Writer';
-import type { MT940Statement, MT940Transaction } from '../utils/mt940Writer';
+import { analyzeMergeEligibility } from '../validation/merge';
+import { mergeSingleStatement as mergeSingleStatementModule } from '../merge/singleStatement';
+import type { MT940Statement } from '../utils/mt940Writer';
+import type { ValidationIssue, Statement } from '../types/validation';
 
 interface StatementItem {
   id: string;
@@ -15,40 +18,7 @@ interface StatementItem {
   date: string;
   transactionCount: number;
   statement: MT940Statement;
-}
-
-function mergeSingleStatement(statements: MT940Statement[]): MT940Statement {
-  if (statements.length === 0) {
-    return { transactions: [] };
-  }
-  if (statements.length === 1) {
-    return statements[0];
-  }
-
-  const allTransactions: MT940Transaction[] = [];
-  for (const stmt of statements) {
-    if (stmt.transactions) {
-      allTransactions.push(...stmt.transactions);
-    }
-  }
-
-  allTransactions.sort((a, b) => {
-    const dateA = a.valueDate || a.entryDate || '';
-    const dateB = b.valueDate || b.entryDate || '';
-    return dateA.localeCompare(dateB);
-  });
-
-  const first = statements[0];
-  const last = statements[statements.length - 1];
-
-  return {
-    accountId: first.accountId,
-    statementNumber: '1',
-    sequenceNumber: '1',
-    openingBalance: first.openingBalance,
-    closingBalance: last.closingBalance,
-    transactions: allTransactions,
-  };
+  validationStatement: Statement;
 }
 
 export const MergePanel: React.FC = observer(() => {
@@ -56,24 +26,31 @@ export const MergePanel: React.FC = observer(() => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'multi' | 'single'>('multi');
+  const [showSingleConfirm, setShowSingleConfirm] = useState(false);
 
-  const hasErrors = useMemo(() => {
-    return fileStore.batchIssues.some(issue => issue.severity === 'error');
-  }, [fileStore.batchIssues]);
+  const allIssues = useMemo((): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [...fileStore.batchIssues];
+    for (const file of fileStore.files) {
+      if (file.validationIssues) {
+        issues.push(...file.validationIssues);
+      }
+    }
+    return issues;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileStore.batchIssues.length, fileStore.files.length]);
 
-  const errorCount = useMemo(() => {
-    return fileStore.batchIssues.filter(issue => issue.severity === 'error').length;
-  }, [fileStore.batchIssues]);
+  const errorCount = selectionEligibility.multiMessage.blockers.length;
 
   const statementItems = useMemo((): StatementItem[] => {
     const items: StatementItem[] = [];
     for (const file of fileStore.files) {
-      if (!file.parsed?.statements) continue;
+      if (!file.parsed?.statements || !file.statements) continue;
       const writableStatements = convertParsedToWritable(file.parsed);
 
       file.parsed.statements.forEach((stmt, idx) => {
         const writable = writableStatements[idx];
-        if (!writable) return;
+        const validationStmt = file.statements?.[idx];
+        if (!writable || !validationStmt) return;
 
         items.push({
           id: `${file.id}-${idx}`,
@@ -84,17 +61,40 @@ export const MergePanel: React.FC = observer(() => {
           date: stmt.openingBalance?.date || '',
           transactionCount: stmt.transactions?.length || 0,
           statement: writable,
+          validationStatement: validationStmt,
         });
       });
     }
     return items;
-  }, [fileStore.files]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileStore.files.length]);
+
+  const selectedItems = useMemo(() => {
+    return statementItems.filter(item => selectedIds.has(item.id));
+  }, [statementItems, selectedIds]);
 
   const selectedStatements = useMemo((): MT940Statement[] => {
-    return statementItems
-      .filter(item => selectedIds.has(item.id))
-      .map(item => item.statement);
-  }, [statementItems, selectedIds]);
+    return selectedItems.map(item => item.statement);
+  }, [selectedItems]);
+
+  const selectedValidationStatements = useMemo((): Statement[] => {
+    return selectedItems.map(item => item.validationStatement);
+  }, [selectedItems]);
+
+  const selectedFileIds = useMemo((): Set<string> => {
+    return new Set(selectedItems.map(item => item.fileId));
+  }, [selectedItems]);
+
+  const selectedIssues = useMemo((): ValidationIssue[] => {
+    return allIssues.filter(issue => !issue.fileId || selectedFileIds.has(issue.fileId));
+  }, [allIssues, selectedFileIds]);
+
+  const selectionEligibility = useMemo(() => {
+    if (selectedValidationStatements.length === 0) {
+      return { multiMessage: { eligible: true, blockers: [] }, singleStatement: { eligible: true, blockers: [] } };
+    }
+    return analyzeMergeEligibility(selectedValidationStatements, selectedIssues);
+  }, [selectedValidationStatements, selectedIssues]);
 
   const multiMessageContent = useMemo((): string => {
     if (selectedStatements.length === 0) return '';
@@ -102,15 +102,40 @@ export const MergePanel: React.FC = observer(() => {
   }, [selectedStatements]);
 
   const singleStatementContent = useMemo((): string => {
-    if (selectedStatements.length === 0) return '';
-    const merged = mergeSingleStatement(selectedStatements);
-    return writeMT940([merged]);
-  }, [selectedStatements]);
+    if (selectedValidationStatements.length === 0) return '';
+    const merged = mergeSingleStatementModule(selectedValidationStatements);
+    return writeMT940([{
+      accountId: merged.accountId,
+      statementNumber: merged.statementNumber,
+      sequenceNumber: merged.sequenceNumber,
+      openingBalance: {
+        indicator: merged.openingBalance.isCredit ? 'C' : 'D',
+        date: merged.openingBalance.date,
+        currency: merged.openingBalance.currency,
+        amount: merged.openingBalance.amount.toString(),
+      },
+      closingBalance: {
+        indicator: merged.closingBalance.isCredit ? 'C' : 'D',
+        date: merged.closingBalance.date,
+        currency: merged.closingBalance.currency,
+        amount: merged.closingBalance.amount.toString(),
+      },
+      transactions: merged.transactions.map(t => ({
+        valueDate: t.valueDate,
+        entryDate: t.entryDate,
+        debitCredit: t.isCredit ? 'C' : 'D',
+        amount: t.amount.toString(),
+        transactionType: t.transactionType,
+        reference: t.customerReference,
+        description: t.description,
+      })),
+    }]);
+  }, [selectedValidationStatements]);
 
   const previewContent = previewMode === 'multi' ? multiMessageContent : singleStatementContent;
 
-  const canMergeMulti = selectedIds.size > 0 && !hasErrors;
-  const canMergeSingle = selectedIds.size > 0 && !hasErrors;
+  const canMergeMulti = selectedIds.size > 0 && selectionEligibility.multiMessage.eligible;
+  const canMergeSingle = selectedIds.size > 0 && selectionEligibility.singleStatement.eligible;
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -151,6 +176,16 @@ export const MergePanel: React.FC = observer(() => {
     downloadContent(singleStatementContent, 'merged-single.mt940');
   };
 
+  const promptSingleDownload = () => {
+    if (!canMergeSingle) return;
+    setShowSingleConfirm(true);
+  };
+
+  const confirmSingleDownload = () => {
+    setShowSingleConfirm(false);
+    downloadSingle();
+  };
+
   const openPreview = (mode: 'multi' | 'single') => {
     setPreviewMode(mode);
     setShowPreview(true);
@@ -160,11 +195,19 @@ export const MergePanel: React.FC = observer(() => {
     return null;
   }
 
-  const disabledReason = hasErrors
-    ? t('merge.disabledErrors', { count: errorCount })
+  const multiDisabledReason = !selectionEligibility.multiMessage.eligible
+    ? selectionEligibility.multiMessage.reason || t('merge.disabledErrors', { count: errorCount })
     : selectedIds.size === 0
     ? t('merge.disabledNoSelection')
     : null;
+
+  const singleDisabledReason = !selectionEligibility.singleStatement.eligible
+    ? selectionEligibility.singleStatement.reason || t('merge.disabledErrors', { count: errorCount })
+    : selectedIds.size === 0
+    ? t('merge.disabledNoSelection')
+    : null;
+
+  const disabledReason = multiDisabledReason || singleDisabledReason;
 
   return (
     <div className="mt-6 bg-white border border-gray-200 rounded-lg shadow-sm">
@@ -274,14 +317,14 @@ export const MergePanel: React.FC = observer(() => {
             {t('merge.previewSingle')}
           </button>
           <button
-            onClick={downloadSingle}
+            onClick={promptSingleDownload}
             disabled={!canMergeSingle}
             className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
               canMergeSingle
                 ? 'border-transparent text-white bg-amber-600 hover:bg-amber-700'
                 : 'border-gray-200 text-gray-400 bg-gray-300 cursor-not-allowed'
             }`}
-            title={disabledReason || t('merge.singleDesc')}
+            title={singleDisabledReason || t('merge.singleDesc')}
           >
             <FileText className="h-3 w-3 mr-1" />
             {t('merge.downloadSingle')}
@@ -327,6 +370,47 @@ export const MergePanel: React.FC = observer(() => {
               >
                 <Download className="h-4 w-4 mr-2" />
                 {t('merge.download')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSingleConfirm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">
+                {t('merge.singleConfirmTitle')}
+              </h3>
+              <button
+                onClick={() => setShowSingleConfirm(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-gray-600">
+                  {t('merge.singleConfirmMessage')}
+                </p>
+              </div>
+            </div>
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={() => setShowSingleConfirm(false)}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={confirmSingleDownload}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {t('merge.confirmDownload')}
               </button>
             </div>
           </div>
