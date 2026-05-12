@@ -1,6 +1,6 @@
 # CA2 MT940 Merger Documentation
 
-Web application for parsing and merging MT940 bank statement files into CSV format.
+Web application for parsing, validating, and merging MT940 bank statement files. Supports CSV and MT940 output formats.
 
 ## Table of Contents
 
@@ -20,4 +20,5 @@ Web application for parsing and merging MT940 bank statement files into CSV form
 - **Framework:** Vite + React 18
 - **State:** MobX
 - **Styling:** Tailwind CSS
+- **Testing:** Vitest (80% branch coverage threshold)
 - **Deployment:** Docker/nginx

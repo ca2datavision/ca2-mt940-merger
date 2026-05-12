@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Globe2 } from 'lucide-react';
 
 export const LanguageSelector = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const languages = [

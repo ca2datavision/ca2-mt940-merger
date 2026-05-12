@@ -1,19 +1,43 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
-import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check } from 'lucide-react';
+import type { ValidationIssue } from './types/validation';
+import { FileText, Upload, X, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, Github, Mail } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
 import { LanguageSelector } from './components/LanguageSelector';
 import { ConfirmationModal } from './components/ConfirmationModal';
+import { ValidationStatusBadge } from './components/ValidationStatusBadge';
+import { ValidationSummary, FileValidationCard } from './components/ValidationSummary';
+import { IssueList } from './components/IssueList';
+import { ReportPanel } from './components/ReportPanel';
+import { ProgressIndicator } from './components/ProgressIndicator';
+import { MergePanel } from './components/MergePanel';
 import './i18n';
 
 const App = observer(() => {
   const { t } = useTranslation();
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingZipFile, setPendingZipFile] = useState<File | null>(null);
+  const [showZipPrompt, setShowZipPrompt] = useState(false);
+
+  const allIssues = useMemo((): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [...fileStore.batchIssues];
+    for (const file of fileStore.files) {
+      if (file.validationIssues) {
+        issues.push(...file.validationIssues.map(issue => ({
+          ...issue,
+          fileName: issue.fileName || file.name,
+          fileId: issue.fileId || file.id,
+        })));
+      }
+    }
+    return issues;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileStore.batchIssues.length, fileStore.files.length]);
 
   const shareUrl = window.location.href;
   const shareLinks = {
@@ -22,65 +46,89 @@ const App = observer(() => {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
   };
 
+  const processFiles = useCallback(async (files: File[]) => {
+    for (const file of files) {
+      await fileStore.addFile(file);
+    }
+    fileStore.validateBatch();
+  }, []);
+
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     const files = event.target.files;
     if (!files) return;
 
+    const fileArray = Array.from(files);
+    const zipFile = fileArray.find(f => f.name.toLowerCase().endsWith('.zip'));
+
+    if (zipFile && fileStore.files.length > 0) {
+      setPendingZipFile(zipFile);
+      setShowZipPrompt(true);
+      event.target.value = '';
+      return;
+    }
+
     try {
-      for (const file of Array.from(files)) {
-        await fileStore.addFile(file);
-      }
+      await processFiles(fileArray);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  }, []);
+    event.target.value = '';
+  }, [processFiles]);
 
   const handleDrop = useCallback(async (event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     const files = event.dataTransfer.files;
     if (!files) return;
 
+    const fileArray = Array.from(files);
+    const zipFile = fileArray.find(f => f.name.toLowerCase().endsWith('.zip'));
+
+    if (zipFile && fileStore.files.length > 0) {
+      setPendingZipFile(zipFile);
+      setShowZipPrompt(true);
+      return;
+    }
+
     try {
-      for (const file of Array.from(files)) {
-        await fileStore.addFile(file);
-      }
+      await processFiles(fileArray);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  }, []);
+  }, [processFiles]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
   }, []);
 
-  const downloadCSV = useCallback(() => {
-    const rows = fileStore.convertToCSV();
-    const { min, max } = fileStore.getTransactionDateRange();
-    const accountId = fileStore.getFirstAccountId();
-    const accountSuffix = accountId ? `_${accountId}` : '';
-    const filename = min === max ? 
-      `transactions${accountSuffix}_${min}` : 
-      `transactions${accountSuffix}_${min}_to_${max}`;
+  const handleZipAppend = useCallback(async () => {
+    if (!pendingZipFile) return;
+    setShowZipPrompt(false);
+    try {
+      await fileStore.addFile(pendingZipFile);
+      fileStore.validateBatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+    }
+    setPendingZipFile(null);
+  }, [pendingZipFile]);
 
-    const headers = [
-      'numar cont', 'data procesarii', 'suma', 'valuta',
-      'tip tranzactie', 'nume beneficiar/ordonator',
-      'adresa beneficiar/ordonator', 'cont beneficiar/ordonator',
-      'banca beneficiar/ordonator', 'detalii tranzactie',
-      'sold intermediar', 'CUI Contrapartida'
-    ];
+  const handleZipReplace = useCallback(async () => {
+    if (!pendingZipFile) return;
+    setShowZipPrompt(false);
+    fileStore.reset();
+    try {
+      await fileStore.addFile(pendingZipFile);
+      fileStore.validateBatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+    }
+    setPendingZipFile(null);
+  }, [pendingZipFile]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => Object.values(row).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${filename}.csv`;
-    link.click();
+  const handleZipCancel = useCallback(() => {
+    setShowZipPrompt(false);
+    setPendingZipFile(null);
   }, []);
 
   const handleCopy = useCallback(async () => {
@@ -129,7 +177,7 @@ const App = observer(() => {
               type="file"
               multiple
               onClick={(e) => (e.target as HTMLInputElement).value = ''}
-              accept=".sta,.mt940,.mt,.txt"
+              accept=".sta,.mt940,.mt,.txt,.zip,application/zip"
               className="hidden"
               onChange={handleFileUpload}
             />
@@ -139,18 +187,32 @@ const App = observer(() => {
         {/* File List */}
         {fileStore.files.length > 0 && (
           <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <ValidationStatusBadge />
+              <button
+                onClick={() => setShowResetConfirmation(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <X className="h-4 w-4 mr-1" />
+                {t('reset')}
+              </button>
+            </div>
+            <ValidationSummary />
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <ul className="divide-y divide-gray-200">
                 {fileStore.files.map((file) => (
                   <li key={file.id}>
                     <div className="px-4 py-4 sm:px-6 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                        <div className="text-sm font-medium text-indigo-600 truncate">
-                          {file.name}
+                      <div className="flex items-center min-w-0 flex-1">
+                        <FileText className="h-5 w-5 text-gray-400 mr-3 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-indigo-600 truncate">
+                            {file.name}
+                          </div>
+                          <FileValidationCard fileId={file.id} />
                         </div>
                       </div>
-                      <div className="flex space-x-3">
+                      <div className="flex space-x-3 ml-4">
                         <button
                           onClick={() => fileStore.setSelectedFile(file.id)}
                           className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -159,7 +221,7 @@ const App = observer(() => {
                           {t('preview')}
                         </button>
                         <button
-                          onClick={() => fileStore.removeFile(file.id)}
+                          onClick={() => { fileStore.removeFile(file.id); fileStore.validateBatch(); }}
                           className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                         >
                           <X className="h-4 w-4 mr-1" />
@@ -172,8 +234,57 @@ const App = observer(() => {
               </ul>
             </div>
 
+            {/* All Validation Issues (Batch + Per-File) */}
+            <IssueList issues={allIssues} />
+
+            {/* ZIP Ignored/Failed Files */}
+            {(fileStore.zipIgnored.length > 0 || fileStore.zipFailed.length > 0) && (
+              <div className="mt-4 bg-gray-50 border border-gray-200 rounded-md p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start">
+                    <AlertTriangle className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700">
+                        ZIP Import: {fileStore.zipIgnored.length + fileStore.zipFailed.length} files skipped
+                      </h3>
+                      <ul className="mt-2 text-sm text-gray-600 list-disc pl-5 space-y-1">
+                        {fileStore.zipIgnored.slice(0, 3).map((item, idx) => (
+                          <li key={`ignored-${idx}`}>
+                            {item.name} - <span className="text-gray-500">{item.reason}</span>
+                          </li>
+                        ))}
+                        {fileStore.zipFailed.slice(0, 3).map((item, idx) => (
+                          <li key={`failed-${idx}`} className="text-red-600">
+                            {item.name} - {item.reason}
+                          </li>
+                        ))}
+                        {(fileStore.zipIgnored.length + fileStore.zipFailed.length) > 6 && (
+                          <li className="text-gray-500">
+                            ... and {fileStore.zipIgnored.length + fileStore.zipFailed.length - 6} more
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { fileStore.clearZipStatus(); }}
+                    className="text-gray-400 hover:text-gray-500"
+                    title="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Report Panel */}
+            <ReportPanel />
+
+            {/* Merge Panel */}
+            <MergePanel />
+
             {/* Action Buttons */}
-            <div className="mt-4 flex justify-between items-center">
+            <div className="mt-4">
               <button
                 onClick={() => setShowResetConfirmation(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -181,22 +292,6 @@ const App = observer(() => {
                 <X className="h-4 w-4 mr-2" />
                 {t('reset')}
               </button>
-              <div className="flex space-x-4">
-              <button
-                onClick={() => fileStore.setShowCSVPreview(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Preview CSV
-              </button>
-              <button
-                onClick={downloadCSV}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {t('download')}
-              </button>
-              </div>
             </div>
           </div>
         )}
@@ -215,6 +310,57 @@ const App = observer(() => {
           title={t('resetTitle')}
           message={t('confirmReset')}
         />
+
+        {/* ZIP Append/Replace Modal */}
+        {showZipPrompt && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <Upload className="h-6 w-6 text-indigo-600" />
+                  <h3 className="ml-3 text-lg font-medium text-gray-900">
+                    {t('zipPromptTitle', { defaultValue: 'Files Already Loaded' })}
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-2">
+                  {t('zipPromptMessage', {
+                    defaultValue: 'You have {{count}} file(s) already loaded. How would you like to handle the ZIP upload?',
+                    count: fileStore.files.length
+                  })}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {pendingZipFile?.name}
+                </p>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleZipCancel}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZipAppend}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    {t('zipAppend', { defaultValue: 'Append' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZipReplace}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {t('zipReplace', { defaultValue: 'Replace' })}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Indicator */}
+        <ProgressIndicator />
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-200">
