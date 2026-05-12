@@ -113,10 +113,28 @@ export const PreviewModal = observer(() => {
             <div key={statementIndex} className="mb-8">
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-gray-700 mb-2">Statement Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Account</p>
                     <p className="font-medium">{statement.accountId || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Currency</p>
+                    <p className="font-medium">{statement.openingBalance?.currency || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Opening Balance</p>
+                    <p className={`font-medium font-mono ${statement.openingBalance?.isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                      {statement.openingBalance ? `${statement.openingBalance.isCredit ? '+' : '-'}${statement.openingBalance.value}` : '-'}
+                    </p>
+                    <p className="text-xs text-gray-500">{formatDate(statement.openingBalance?.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Closing Balance</p>
+                    <p className={`font-medium font-mono ${statement.closingBalance?.isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                      {statement.closingBalance ? `${statement.closingBalance.isCredit ? '+' : '-'}${statement.closingBalance.value}` : '-'}
+                    </p>
+                    <p className="text-xs text-gray-500">{formatDate(statement.closingBalance?.date)}</p>
                   </div>
                 </div>
               </div>
