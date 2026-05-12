@@ -109,13 +109,13 @@ export const MergePanel: React.FC = observer(() => {
       statementNumber: merged.statementNumber,
       sequenceNumber: merged.sequenceNumber,
       openingBalance: {
-        indicator: merged.openingBalance.isCredit ? 'C' : 'D',
+        isCredit: merged.openingBalance.isCredit,
         date: merged.openingBalance.date,
         currency: merged.openingBalance.currency,
         amount: merged.openingBalance.amount.toString(),
       },
       closingBalance: {
-        indicator: merged.closingBalance.isCredit ? 'C' : 'D',
+        isCredit: merged.closingBalance.isCredit,
         date: merged.closingBalance.date,
         currency: merged.closingBalance.currency,
         amount: merged.closingBalance.amount.toString(),
@@ -123,7 +123,7 @@ export const MergePanel: React.FC = observer(() => {
       transactions: merged.transactions.map(t => ({
         valueDate: t.valueDate,
         entryDate: t.entryDate,
-        debitCredit: t.isCredit ? 'C' : 'D',
+        isCredit: t.isCredit,
         amount: t.amount.toString(),
         transactionType: t.transactionType,
         reference: t.customerReference,
