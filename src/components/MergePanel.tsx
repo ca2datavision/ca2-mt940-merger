@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown } from 'lucide-react';
+import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
 import { writeMT940, convertParsedToWritable } from '../utils/mt940Writer';
 import { analyzeMergeEligibility } from '../validation/merge';
@@ -28,6 +28,7 @@ export const MergePanel: React.FC = observer(() => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'multi' | 'single'>('multi');
   const [showSingleConfirm, setShowSingleConfirm] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const allIssues = useMemo((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [...fileStore.batchIssues];
@@ -389,6 +390,21 @@ export const MergePanel: React.FC = observer(() => {
                 <FileStack className="h-3 w-3 mr-1" />
                 {t('merge.downloadMulti')}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Collapsible Advanced Section */}
+        <div className="mt-3 border-t border-gray-200 pt-3">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+          >
+            {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            {t('merge.advancedOptions', { defaultValue: 'Advanced Options' })}
+          </button>
+          {showAdvanced && (
+            <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => openPreview('single')}
                 disabled={!canMergeSingle}
@@ -399,7 +415,8 @@ export const MergePanel: React.FC = observer(() => {
                 }`}
                 title={t('merge.previewSingle')}
               >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-3 w-3 mr-1" />
+                {t('merge.previewSingleLabel', { defaultValue: 'Preview Single' })}
               </button>
               <button
                 onClick={() => openPreview('multi')}
@@ -411,10 +428,11 @@ export const MergePanel: React.FC = observer(() => {
                 }`}
                 title={t('merge.previewMulti')}
               >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-3 w-3 mr-1" />
+                {t('merge.previewMultiLabel', { defaultValue: 'Preview Multi' })}
               </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
