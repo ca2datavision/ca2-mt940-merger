@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight, FileJson } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
 import { writeMT940, convertParsedToWritable } from '../utils/mt940Writer';
+import { buildValidationResult, validationResultToJSON, generateValidationReport, downloadFile } from '../utils/exportValidation';
 import { analyzeMergeEligibility } from '../validation/merge';
 import { mergeSingleStatement as mergeSingleStatementModule } from '../merge/singleStatement';
 import { toCSV, ENHANCED_HEADERS } from '../utils/csv';
