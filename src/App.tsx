@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import type { ValidationIssue } from './types/validation';
-import { FileText, Upload, X, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, Github, Mail } from 'lucide-react';
+import { FileText, Upload, X, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, Github, Mail } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
