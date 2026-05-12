@@ -119,6 +119,7 @@ describe('mergeSingleStatement', () => {
   it('throws error for empty statements array', () => {
     expect(() => mergeSingleStatement([])).toThrow('No statements to merge');
   });
+
 });
 
 describe('previewSingleStatementMerge', () => {
@@ -161,5 +162,44 @@ describe('validateMergeResult', () => {
 
     expect(result.valid).toBe(false);
     expect(result.issues[0]).toContain('Transaction count mismatch');
+  });
+
+  it('detects opening balance mismatch', () => {
+    const stmt = makeStatement();
+    const merged = mergeSingleStatement([stmt]);
+    merged.openingBalance.amount = new Decimal('9999');
+
+    const result = validateMergeResult([stmt], merged);
+
+    expect(result.valid).toBe(false);
+    expect(result.issues).toContain('Opening balance mismatch');
+  });
+});
+
+describe('transaction sorting', () => {
+  it('sorts by valueDate when entryDates are equal across multiple statements', () => {
+    const stmt1 = makeStatement({
+      id: 'stmt-1',
+      statementNumber: '001',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-1', entryDate: '2024-01-15', valueDate: '2024-01-20', amount: new Decimal('50') }),
+      ],
+    });
+    const stmt2 = makeStatement({
+      id: 'stmt-2',
+      statementNumber: '002',
+      openingBalance: { date: '2024-02-01', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-02-28', amount: new Decimal('1200'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-2', entryDate: '2024-01-15', valueDate: '2024-01-10', amount: new Decimal('50') }),
+      ],
+    });
+
+    const merged = mergeSingleStatement([stmt1, stmt2]);
+
+    expect(merged.transactions[0].valueDate).toBe('2024-01-10');
+    expect(merged.transactions[1].valueDate).toBe('2024-01-20');
   });
 });
