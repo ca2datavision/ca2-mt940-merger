@@ -23,6 +23,8 @@ const App = observer(() => {
   const { t } = useTranslation();
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pendingZipFile, setPendingZipFile] = useState<File | null>(null);
+  const [showZipPrompt, setShowZipPrompt] = useState(false);
 
   const allIssues = useMemo((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [...fileStore.batchIssues];
@@ -46,38 +48,89 @@ const App = observer(() => {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`
   };
 
+  const processFiles = useCallback(async (files: File[]) => {
+    for (const file of files) {
+      await fileStore.addFile(file);
+    }
+    fileStore.validateBatch();
+  }, []);
+
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     const files = event.target.files;
     if (!files) return;
 
+    const fileArray = Array.from(files);
+    const zipFile = fileArray.find(f => f.name.toLowerCase().endsWith('.zip'));
+
+    if (zipFile && fileStore.files.length > 0) {
+      setPendingZipFile(zipFile);
+      setShowZipPrompt(true);
+      event.target.value = '';
+      return;
+    }
+
     try {
-      for (const file of Array.from(files)) {
-        await fileStore.addFile(file);
-      }
-      fileStore.validateBatch();
+      await processFiles(fileArray);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  }, []);
+    event.target.value = '';
+  }, [processFiles]);
 
   const handleDrop = useCallback(async (event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     const files = event.dataTransfer.files;
     if (!files) return;
 
+    const fileArray = Array.from(files);
+    const zipFile = fileArray.find(f => f.name.toLowerCase().endsWith('.zip'));
+
+    if (zipFile && fileStore.files.length > 0) {
+      setPendingZipFile(zipFile);
+      setShowZipPrompt(true);
+      return;
+    }
+
     try {
-      for (const file of Array.from(files)) {
-        await fileStore.addFile(file);
-      }
-      fileStore.validateBatch();
+      await processFiles(fileArray);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to process file');
     }
-  }, []);
+  }, [processFiles]);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
+  }, []);
+
+  const handleZipAppend = useCallback(async () => {
+    if (!pendingZipFile) return;
+    setShowZipPrompt(false);
+    try {
+      await fileStore.addFile(pendingZipFile);
+      fileStore.validateBatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+    }
+    setPendingZipFile(null);
+  }, [pendingZipFile]);
+
+  const handleZipReplace = useCallback(async () => {
+    if (!pendingZipFile) return;
+    setShowZipPrompt(false);
+    fileStore.reset();
+    try {
+      await fileStore.addFile(pendingZipFile);
+      fileStore.validateBatch();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+    }
+    setPendingZipFile(null);
+  }, [pendingZipFile]);
+
+  const handleZipCancel = useCallback(() => {
+    setShowZipPrompt(false);
+    setPendingZipFile(null);
   }, []);
 
   const downloadCSV = useCallback(() => {
@@ -357,6 +410,54 @@ const App = observer(() => {
           title={t('resetTitle')}
           message={t('confirmReset')}
         />
+
+        {/* ZIP Append/Replace Modal */}
+        {showZipPrompt && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <Upload className="h-6 w-6 text-indigo-600" />
+                  <h3 className="ml-3 text-lg font-medium text-gray-900">
+                    {t('zipPromptTitle', { defaultValue: 'Files Already Loaded' })}
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-2">
+                  {t('zipPromptMessage', {
+                    defaultValue: 'You have {{count}} file(s) already loaded. How would you like to handle the ZIP upload?',
+                    count: fileStore.files.length
+                  })}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {pendingZipFile?.name}
+                </p>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleZipCancel}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZipAppend}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    {t('zipAppend', { defaultValue: 'Append' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleZipReplace}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {t('zipReplace', { defaultValue: 'Replace' })}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Progress Indicator */}
         <ProgressIndicator />
