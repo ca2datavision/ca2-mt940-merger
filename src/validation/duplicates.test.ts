@@ -115,6 +115,16 @@ describe('detectDuplicateTransactions', () => {
     const issues = detectDuplicateTransactions(transactions);
     expect(issues).toHaveLength(0);
   });
+
+  it('considers debit/credit in fingerprint', () => {
+    const transactions: TransactionInfo[] = [
+      { ...baseTxn, isCredit: true },
+      { ...baseTxn, isCredit: false },
+    ];
+
+    const issues = detectDuplicateTransactions(transactions);
+    expect(issues).toHaveLength(0);
+  });
 });
 
 describe('detectAllDuplicates', () => {

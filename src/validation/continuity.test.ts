@@ -4,6 +4,7 @@ import {
   groupStatements,
   sortStatements,
   detectDuplicateStatementNumbers,
+  detectOutOfOrder,
   validateBalanceContinuity,
   validateContinuity,
 } from './continuity';
@@ -68,6 +69,19 @@ describe('sortStatements', () => {
     expect(sorted[1].statementNumber).toBe('2');
     expect(sorted[2].statementNumber).toBe('3');
   });
+
+  it('sorts by statement number when dates are equal', () => {
+    const statements = [
+      makeStatement('3', 'ACC1', '3', 200, 250, '2026-05-01', '2026-05-05'),
+      makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-05'),
+      makeStatement('2', 'ACC1', '2', 150, 200, '2026-05-01', '2026-05-05'),
+    ];
+
+    const sorted = sortStatements(statements);
+    expect(sorted[0].statementNumber).toBe('1');
+    expect(sorted[1].statementNumber).toBe('2');
+    expect(sorted[2].statementNumber).toBe('3');
+  });
 });
 
 describe('detectDuplicateStatementNumbers', () => {
@@ -89,6 +103,29 @@ describe('detectDuplicateStatementNumbers', () => {
     ];
 
     const issues = detectDuplicateStatementNumbers(statements);
+    expect(issues).toHaveLength(0);
+  });
+});
+
+describe('detectOutOfOrder', () => {
+  it('detects out of order statements', () => {
+    const statements = [
+      makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-10'),
+      makeStatement('2', 'ACC1', '2', 150, 200, '2026-05-05', '2026-05-08'),
+    ];
+
+    const issues = detectOutOfOrder(statements);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].code).toBe('OUT_OF_ORDER_STATEMENTS');
+  });
+
+  it('allows chronological statements', () => {
+    const statements = [
+      makeStatement('1', 'ACC1', '1', 100, 150, '2026-05-01', '2026-05-05'),
+      makeStatement('2', 'ACC1', '2', 150, 200, '2026-05-06', '2026-05-10'),
+    ];
+
+    const issues = detectOutOfOrder(statements);
     expect(issues).toHaveLength(0);
   });
 });

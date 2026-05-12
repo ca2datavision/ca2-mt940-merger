@@ -120,6 +120,31 @@ describe('mergeSingleStatement', () => {
     expect(() => mergeSingleStatement([])).toThrow('No statements to merge');
   });
 
+  it('sorts transactions by valueDate when entryDates are equal', () => {
+    const stmt1 = makeStatement({
+      id: 'stmt-1',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-15', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-1', entryDate: '2024-01-10', valueDate: '2024-01-12', amount: new Decimal('100') }),
+      ],
+    });
+    const stmt2 = makeStatement({
+      id: 'stmt-2',
+      openingBalance: { date: '2024-01-15', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: new Decimal('1400'), currency: 'EUR', isCredit: true },
+      transactions: [
+        makeTransaction({ id: 'txn-2', entryDate: '2024-01-10', valueDate: '2024-01-09', amount: new Decimal('200') }),
+        makeTransaction({ id: 'txn-3', entryDate: '2024-01-10', valueDate: '2024-01-11', amount: new Decimal('100') }),
+      ],
+    });
+
+    const merged = mergeSingleStatement([stmt1, stmt2]);
+
+    expect(merged.transactions[0].valueDate).toBe('2024-01-09');
+    expect(merged.transactions[1].valueDate).toBe('2024-01-11');
+    expect(merged.transactions[2].valueDate).toBe('2024-01-12');
+  });
 });
 
 describe('previewSingleStatementMerge', () => {
