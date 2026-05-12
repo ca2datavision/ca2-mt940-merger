@@ -350,6 +350,13 @@ export const MergePanel: React.FC = observer(() => {
                 <FileDown className="h-3 w-3 mr-1" />
                 {t('merge.downloadEnhancedCsv', { defaultValue: 'Enhanced CSV' })}
               </button>
+              <button
+                onClick={() => fileStore.setShowCSVPreview(true)}
+                className="inline-flex items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-500 bg-white hover:bg-gray-50"
+                title={t('merge.previewCsv', { defaultValue: 'Preview CSV data' })}
+              >
+                <Eye className="h-3 w-3" />
+              </button>
             </div>
           </div>
 
