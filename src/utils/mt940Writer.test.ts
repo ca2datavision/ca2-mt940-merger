@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import * as mt940 from 'mt940-js';
-import { writeMT940, MT940Statement } from './mt940Writer';
+import { writeMT940, MT940Statement, convertParsedToWritable } from './mt940Writer';
 
 const sampleStatement: MT940Statement = {
   accountId: 'RO49AAAA1B31007593840000',
@@ -192,5 +192,60 @@ describe('MT940 Writer :86: Narrative', () => {
 
     expect(parsed[0].transactions[0].description).toBeTruthy();
     expect(parsed[0].transactions[0].description.length).toBeGreaterThan(100);
+  });
+
+  it('preserves :86: multi-line content with subfields', () => {
+    const description = '000+20Pl Inst Paymnt+30300410008+31RO34RNCB0847173501260001+32RADU DIANA GEORGIANA+33/+23PLATA ZILIER BRD Office';
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description,
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+
+    // Verify all subfields are present in output
+    expect(output).toContain('+20Pl Inst Paymnt');
+    expect(output).toContain('+32RADU DIANA GEORGIANA');
+    expect(output).toContain('+33/');
+    expect(output).toContain('+23PLATA ZILIER BRD Office');
+  });
+
+  it('round-trips :86: content through parse → convert → write', async () => {
+    // Create MT940 with :86: content
+    const description = '000+20Payment+32BENEFICIARY NAME+23Additional Info';
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactionReference: 'REF123',
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description,
+      }],
+    };
+
+    // Write → Parse → Convert → Write again
+    const output1 = writeMT940([stmt]);
+    const buffer = new TextEncoder().encode(output1);
+    const parsed = await mt940.read(buffer.buffer);
+    const converted = convertParsedToWritable({ statements: parsed });
+    const output2 = writeMT940(converted);
+
+    // Both outputs should contain the full description
+    expect(output1).toContain('+32BENEFICIARY NAME');
+    expect(output2).toContain('+32BENEFICIARY NAME');
+    expect(output1).toContain('+23Additional Info');
+    expect(output2).toContain('+23Additional Info');
   });
 });
