@@ -99,7 +99,16 @@ function formatTransactionLine(tx: MT940Transaction): string {
 
 function formatInfoLine(tx: MT940Transaction): string {
   if (!tx.description) return '';
-  return `:86:${tx.description}`;
+  const MAX_LEN = 390;
+  const desc = tx.description;
+  if (desc.length <= MAX_LEN) {
+    return `:86:${desc}`;
+  }
+  const chunks: string[] = [];
+  for (let i = 0; i < desc.length; i += MAX_LEN) {
+    chunks.push(`:86:${desc.slice(i, i + MAX_LEN)}`);
+  }
+  return chunks.join('\r\n');
 }
 
 export function writeMT940(
