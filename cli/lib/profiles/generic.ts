@@ -119,7 +119,7 @@ export const genericProfile: BankProfile = {
     if (subfields.length === 0) {
       unstructuredText = content;
     } else {
-      const firstMatch = content.match(/^([^+?\/]+?)(?=[+?]|\/$)/);
+      const firstMatch = content.match(/^([^+?/]+?)(?=[+?]|[/]$)/);
       if (firstMatch && firstMatch[1].trim()) {
         const prefix = firstMatch[1].trim();
         if (prefix.length > 0 && !/^\d{3}$/.test(prefix)) {
