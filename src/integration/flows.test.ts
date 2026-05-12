@@ -4,6 +4,7 @@ import { analyzeMergeEligibility } from '../validation/merge';
 import { mergeSingleStatement, validateMergeResult } from '../merge/singleStatement';
 import { writeMT940 } from '../utils/mt940Writer';
 import { escapeCSVField, toCSV, ENHANCED_HEADERS } from '../utils/csv';
+import { validateFileContent } from '../validation/index';
 import type { Statement, ValidationIssue } from '../types/validation';
 
 describe('End-to-end flow: Statement validation to merge', () => {
@@ -189,5 +190,82 @@ describe('End-to-end flow: MT940 output', () => {
     expect(output).toContain(':61:');
     expect(output).toContain(':62F:');
     expect(output).toContain('RO49AAAA1B31007593840000');
+  });
+});
+
+describe('Round-trip validation: merge → write → parse → validate', () => {
+  it('merged output validates cleanly when re-imported', () => {
+    const writable = [{
+      accountId: 'RO49TEST123456789',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1500.00', currency: 'EUR', isCredit: true },
+      transactions: [
+        { valueDate: '2024-01-10', entryDate: '2024-01-10', amount: '200.00', isCredit: true, transactionType: 'NMSC', reference: 'REF001', description: 'Credit 1' },
+        { valueDate: '2024-01-20', entryDate: '2024-01-20', amount: '300.00', isCredit: true, transactionType: 'NMSC', reference: 'REF002', description: 'Credit 2' },
+      ],
+    }];
+
+    const mt940Output = writeMT940(writable).replace(/\r\n/g, '\n');
+    const result = validateFileContent(mt940Output, 'test-file', 'roundtrip.mt940');
+
+    const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
+    expect(errors).toHaveLength(0);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].transactions).toHaveLength(2);
+  });
+
+  it('preserves D/C indicator through round-trip', () => {
+    const writable = [{
+      accountId: 'RO49TEST987654321',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '500.00', currency: 'EUR', isCredit: false },
+      closingBalance: { date: '2024-01-31', amount: '700.00', currency: 'EUR', isCredit: false },
+      transactions: [
+        { valueDate: '2024-01-10', entryDate: '2024-01-10', amount: '100.00', isCredit: true, transactionType: 'NMSC', reference: 'CREDIT1', description: 'Credit' },
+        { valueDate: '2024-01-20', entryDate: '2024-01-20', amount: '300.00', isCredit: false, transactionType: 'NMSC', reference: 'DEBIT1', description: 'Debit' },
+      ],
+    }];
+
+    const mt940Output = writeMT940(writable).replace(/\r\n/g, '\n');
+
+    expect(mt940Output).toContain(':60F:D');
+    expect(mt940Output).toContain(':62F:D');
+    expect(mt940Output).toMatch(/:61:\d+C100,00/);
+    expect(mt940Output).toMatch(/:61:\d+D300,00/);
+
+    const result = validateFileContent(mt940Output, 'test-file', 'roundtrip-dc.mt940');
+
+    const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
+    expect(errors).toHaveLength(0);
+
+    expect(result.statements[0].openingBalance.isCredit).toBe(false);
+    expect(result.statements[0].closingBalance.isCredit).toBe(false);
+
+    const creditTx = result.statements[0].transactions.find((t: { customerReference: string }) => t.customerReference === 'CREDIT1');
+    const debitTx = result.statements[0].transactions.find((t: { customerReference: string }) => t.customerReference === 'DEBIT1');
+    expect(creditTx?.isCredit).toBe(true);
+    expect(debitTx?.isCredit).toBe(false);
+  });
+
+  it('fails validation if D/C indicator is flipped', () => {
+    const writable = [{
+      accountId: 'RO49TEST111222333',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '800.00', currency: 'EUR', isCredit: false },
+      transactions: [
+        { valueDate: '2024-01-15', entryDate: '2024-01-15', amount: '200.00', isCredit: false, transactionType: 'NMSC', reference: 'DEBIT1', description: 'Debit' },
+      ],
+    }];
+
+    const mt940Output = writeMT940(writable).replace(/\r\n/g, '\n');
+    const result = validateFileContent(mt940Output, 'test-file', 'flipped.mt940');
+
+    const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
+    expect(errors.length).toBeGreaterThan(0);
   });
 });
