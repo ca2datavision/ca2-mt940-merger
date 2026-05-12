@@ -268,4 +268,26 @@ describe('Round-trip validation: merge → write → parse → validate', () => 
     const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
     expect(errors.length).toBeGreaterThan(0);
   });
+
+  it('round-trips long narrative without validation errors', () => {
+    const longDesc = 'Payment for services: ' + 'consulting development testing '.repeat(20);
+    const writable = [{
+      accountId: 'RO49TESTNARRATIVE',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1100.00', currency: 'EUR', isCredit: true },
+      transactions: [
+        { valueDate: '2024-01-15', entryDate: '2024-01-15', amount: '100.00', isCredit: true, transactionType: 'NMSC', reference: 'REF001', description: longDesc },
+      ],
+    }];
+
+    const mt940Output = writeMT940(writable).replace(/\r\n/g, '\n');
+    const result = validateFileContent(mt940Output, 'test-file', 'long-narrative.mt940');
+
+    const errors = result.issues.filter((i: ValidationIssue) => i.severity === 'error');
+    expect(errors).toHaveLength(0);
+    expect(result.statements).toHaveLength(1);
+    expect(result.statements[0].transactions).toHaveLength(1);
+  });
 });

@@ -54,3 +54,101 @@ describe('MT940 Writer', () => {
     expect(parsed[0].transactions).toHaveLength(1);
   });
 });
+
+describe('MT940 Writer :86: Narrative', () => {
+  const baseStatement: MT940Statement = {
+    accountId: 'TEST123',
+    statementNumber: '1',
+    sequenceNumber: '1',
+    openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+    closingBalance: { date: '2024-01-31', amount: '1100.00', currency: 'EUR', isCredit: true },
+    transactions: [],
+  };
+
+  it('outputs short description as single :86: line', () => {
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description: 'Short payment description',
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+    const lines = output.split(/\r?\n/);
+    const infoLines = lines.filter(l => l.startsWith(':86:'));
+
+    expect(infoLines).toHaveLength(1);
+    expect(infoLines[0]).toBe(':86:Short payment description');
+  });
+
+  it('handles long description (>390 chars)', () => {
+    const longDesc = 'A'.repeat(500);
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description: longDesc,
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+    expect(output).toContain(':86:');
+    expect(output).toContain('A'.repeat(100));
+  });
+
+  it('round-trips short narrative through mt940-js', async () => {
+    const description = 'Payment for invoice #12345';
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description,
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+    const buffer = new TextEncoder().encode(output);
+    const parsed = await mt940.read(buffer.buffer);
+
+    expect(parsed[0].transactions[0].description).toContain('Payment for invoice');
+  });
+
+  it('round-trips long narrative through mt940-js', async () => {
+    const description = 'Payment for services rendered including: ' + 'consulting, development, testing, '.repeat(15);
+    const stmt: MT940Statement = {
+      ...baseStatement,
+      transactions: [{
+        valueDate: '2024-01-15',
+        entryDate: '2024-01-15',
+        amount: '100.00',
+        isCredit: true,
+        transactionType: 'NMSC',
+        reference: 'REF001',
+        description,
+      }],
+    };
+
+    const output = writeMT940([stmt]);
+    const buffer = new TextEncoder().encode(output);
+    const parsed = await mt940.read(buffer.buffer);
+
+    expect(parsed[0].transactions[0].description).toBeTruthy();
+    expect(parsed[0].transactions[0].description.length).toBeGreaterThan(100);
+  });
+});
