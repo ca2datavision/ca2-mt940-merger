@@ -7,12 +7,20 @@
  *
  * Usage:
  *   npm run mt940:explain -- <file.mt940>
- *   npm run mt940:explain -- <file.mt940> --output report.txt
- *   npm run mt940:explain -- <file.mt940> --output report.json --format json
+ *   npm run mt940:explain -- <file.mt940> --output report.html
+ *   npm run mt940:explain -- <file.mt940> --format json
  */
 
 import { Command } from 'commander';
+import { basename } from 'path';
 import { readFile, writeFileAtomic, validateInputFile } from './lib/io.js';
+import { parseLines } from './lib/decoder.js';
+import {
+  formatWithSummary,
+  createSummary,
+  detectFormatFromPath,
+  type OutputFormat,
+} from './lib/formatters/index.js';
 
 const program = new Command();
 
@@ -22,23 +30,44 @@ program
   .version('1.0.0')
   .argument('<file>', 'MT940 file to explain')
   .option('-o, --output <path>', 'Write output to file instead of stdout')
-  .option('-f, --format <type>', 'Output format: text, json, html', 'text')
+  .option('-f, --format <type>', 'Output format: terminal, json, html (auto-detected from --output extension)')
   .option('--force', 'Overwrite output file if it exists')
   .option('--no-color', 'Disable colored output')
+  .option('--no-raw', 'Hide raw lines in output')
   .action(async (file: string, options: {
     output?: string;
-    format: string;
+    format?: string;
     force?: boolean;
     color?: boolean;
+    raw?: boolean;
   }) => {
     try {
       const inputPath = validateInputFile(file);
       const content = readFile(inputPath);
+      const fileName = basename(inputPath);
 
-      // Placeholder: actual explanation logic will be in Epic 2
-      const explanation = explainMT940(content, {
-        format: options.format as 'text' | 'json' | 'html',
-        color: options.color !== false,
+      const parsedLines = parseLines(content);
+      const summary = createSummary(parsedLines, fileName);
+
+      let outputFormat: OutputFormat = 'terminal';
+      if (options.format) {
+        const fmt = options.format.toLowerCase();
+        if (fmt === 'text' || fmt === 'terminal') {
+          outputFormat = 'terminal';
+        } else if (fmt === 'html') {
+          outputFormat = 'html';
+        } else if (fmt === 'json') {
+          outputFormat = 'json';
+        } else {
+          throw new Error(`Unknown format: ${options.format}. Use terminal, json, or html.`);
+        }
+      } else if (options.output) {
+        outputFormat = detectFormatFromPath(options.output);
+      }
+
+      const explanation = formatWithSummary(parsedLines, summary, outputFormat, {
+        color: options.color !== false && outputFormat === 'terminal',
+        showRawLines: options.raw !== false,
       });
 
       if (options.output) {
@@ -52,59 +81,5 @@ program
       process.exit(1);
     }
   });
-
-interface ExplainOptions {
-  format: 'text' | 'json' | 'html';
-  color: boolean;
-}
-
-/**
- * Explain MT940 content (placeholder - full implementation in Epic 2)
- */
-function explainMT940(content: string, options: ExplainOptions): string {
-  const lines = content.split(/\r?\n/);
-  const lineCount = lines.length;
-  const hasStatements = content.includes(':20:') && content.includes(':60');
-
-  if (options.format === 'json') {
-    return JSON.stringify({
-      summary: {
-        lineCount,
-        hasStatements,
-        format: 'MT940',
-      },
-      message: 'Full explanation will be implemented in Epic 2',
-    }, null, 2);
-  }
-
-  if (options.format === 'html') {
-    return `<!DOCTYPE html>
-<html>
-<head><title>MT940 Explanation</title></head>
-<body>
-<h1>MT940 File Explanation</h1>
-<p>Lines: ${lineCount}</p>
-<p>Valid MT940: ${hasStatements ? 'Yes' : 'No'}</p>
-<p><em>Full explanation will be implemented in Epic 2</em></p>
-</body>
-</html>`;
-  }
-
-  // Text format
-  const output: string[] = [
-    '═══════════════════════════════════════════════════════════════════',
-    '                    MT940 FILE EXPLANATION',
-    '═══════════════════════════════════════════════════════════════════',
-    '',
-    `File contains ${lineCount} lines`,
-    `Valid MT940 structure: ${hasStatements ? 'Yes' : 'No'}`,
-    '',
-    '(Full line-by-line explanation will be implemented in Epic 2)',
-    '',
-    '═══════════════════════════════════════════════════════════════════',
-  ];
-
-  return output.join('\n');
-}
 
 program.parse();
