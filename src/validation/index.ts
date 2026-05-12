@@ -109,6 +109,12 @@ function parseStatementBlocks(content: string): ParsedStatementData[] {
       continue;
     }
 
+    // :86: continuation lines (e.g., +32, +33, +23 subfields)
+    if (pendingTxn?.narrative && !line.startsWith(':') && line.trim()) {
+      pendingTxn.narrative += line.trim();
+      continue;
+    }
+
     // Closing balance :62F: or :62M:
     const closingMatch = line.match(/^:(62[FM]):(.+)/);
     if (closingMatch) {
