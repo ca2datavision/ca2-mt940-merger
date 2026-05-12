@@ -112,8 +112,22 @@ function formatTransactionLine(tx: MT940Transaction): string {
 
 function formatInfoLine(tx: MT940Transaction): string {
   if (!tx.description) return '';
-  const MAX_LEN = 390;
   const desc = tx.description;
+
+  // Split on +XX subfield markers to restore multi-line format
+  // Pattern: split before +20, +21, +22, etc. but not at the start
+  const parts = desc.split(/(?=\+\d{2})/);
+  if (parts.length > 1) {
+    // First part starts with :86:, continuation lines start with the +XX directly
+    const lines: string[] = [`:86:${parts[0]}`];
+    for (let i = 1; i < parts.length; i++) {
+      lines.push(parts[i]);
+    }
+    return lines.join('\r\n');
+  }
+
+  // No subfields, use chunking for long content
+  const MAX_LEN = 390;
   if (desc.length <= MAX_LEN) {
     return `:86:${desc}`;
   }
