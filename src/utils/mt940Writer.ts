@@ -161,6 +161,7 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
     accountId: stmt.accountId,
     statementNumber: stmt.number || '1',
     sequenceNumber: '1',
+    transactionReference: stmt.referenceNumber,
     openingBalance: stmt.openingBalance ? {
       date: stmt.openingBalance.date,
       amount: String(stmt.openingBalance.value || 0),
