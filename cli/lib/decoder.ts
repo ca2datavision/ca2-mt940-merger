@@ -479,7 +479,7 @@ export function parseLines(content: string): ParsedLine[] {
     const tagMatch = line.match(tagPattern);
     if (tagMatch) {
       const tag = tagMatch[1];
-      let value = tagMatch[2];
+      const value = tagMatch[2];
 
       let supplementary: string | undefined;
       if (tag === '61' && i + 1 < lines.length) {
