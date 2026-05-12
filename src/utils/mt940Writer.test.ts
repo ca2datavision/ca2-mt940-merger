@@ -249,3 +249,109 @@ describe('MT940 Writer :86: Narrative', () => {
     expect(output2).toContain('+23Additional Info');
   });
 });
+
+describe('convertParsedToWritable Mapping', () => {
+  it('maps isCredit from transaction', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'REF123',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 900 },
+        transactions: [
+          { id: '', code: 'NTRF', fundsCode: '', isCredit: false, isExpense: true, currency: 'EUR', description: 'Debit', amount: 100, valueDate: '2024-01-15', entryDate: '2024-01-15', customerReference: 'REF', bankReference: '' },
+          { id: '', code: 'NTRF', fundsCode: '', isCredit: true, isExpense: false, currency: 'EUR', description: 'Credit', amount: 50, valueDate: '2024-01-16', entryDate: '2024-01-16', customerReference: 'REF2', bankReference: '' },
+        ],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].transactions![0].isCredit).toBe(false);
+    expect(result[0].transactions![1].isCredit).toBe(true);
+  });
+
+  it('maps referenceNumber from statement', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'CUSTOM-REF-123',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 1000 },
+        transactions: [],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].transactionReference).toBe('CUSTOM-REF-123');
+  });
+
+  it('maps closingAvailableBalance for :64:', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'REF',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 1000 },
+        closingAvailableBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 950 },
+        transactions: [],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].availableBalance).toBeDefined();
+    expect(result[0].availableBalance?.amount).toBe('950');
+    expect(result[0].availableBalance?.isCredit).toBe(true);
+  });
+
+  it('maps forwardAvailableBalance for :65:', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'REF',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 1000 },
+        forwardAvailableBalance: { isCredit: true, date: '2024-02-01', currency: 'EUR', value: 800 },
+        transactions: [],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].forwardAvailableBalance).toBeDefined();
+    expect(result[0].forwardAvailableBalance?.amount).toBe('800');
+    expect(result[0].forwardAvailableBalance?.date).toBe('2024-02-01');
+  });
+
+  it('outputs :64: tag for availableBalance', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1000.00', currency: 'EUR', isCredit: true },
+      availableBalance: { date: '2024-01-31', amount: '950.00', currency: 'EUR', isCredit: true },
+      transactions: [],
+    };
+
+    const output = writeMT940([stmt]);
+    expect(output).toContain(':64:C240131EUR950,00');
+  });
+
+  it('outputs :65: tag for forwardAvailableBalance', () => {
+    const stmt: MT940Statement = {
+      accountId: 'TEST123',
+      statementNumber: '1',
+      sequenceNumber: '1',
+      openingBalance: { date: '2024-01-01', amount: '1000.00', currency: 'EUR', isCredit: true },
+      closingBalance: { date: '2024-01-31', amount: '1000.00', currency: 'EUR', isCredit: true },
+      forwardAvailableBalance: { date: '2024-02-01', amount: '800.00', currency: 'EUR', isCredit: true },
+      transactions: [],
+    };
+
+    const output = writeMT940([stmt]);
+    expect(output).toContain(':65:C240201EUR800,00');
+  });
+});

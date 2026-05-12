@@ -43,6 +43,7 @@ export interface MT940Statement {
   openingBalance: MT940Balance;
   closingBalance: MT940Balance;
   closingAvailableBalance?: MT940Balance;
+  forwardAvailableBalance?: MT940Balance;
   additionalInformation?: string;
   transactions: MT940Transaction[];
 }

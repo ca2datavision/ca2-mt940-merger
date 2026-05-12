@@ -61,6 +61,12 @@ export interface MT940Statement {
     currency?: string;
     isCredit?: boolean;
   };
+  forwardAvailableBalance?: {
+    date?: string;
+    amount?: string;
+    currency?: string;
+    isCredit?: boolean;
+  };
   statementInfo?: string;
   transactions?: MT940Transaction[];
 }
@@ -173,6 +179,10 @@ export function writeMT940(
       lines.push(formatBalanceLine('64', stmt.availableBalance));
     }
 
+    if (stmt.forwardAvailableBalance) {
+      lines.push(formatBalanceLine('65', stmt.forwardAvailableBalance));
+    }
+
     if (stmt.statementInfo) {
       lines.push(`:86:${stmt.statementInfo}`);
     }
@@ -208,6 +218,12 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
       amount: String(stmt.closingAvailableBalance.value || 0),
       currency: stmt.closingAvailableBalance.currency || 'EUR',
       isCredit: stmt.closingAvailableBalance.isCredit !== false
+    } : undefined,
+    forwardAvailableBalance: stmt.forwardAvailableBalance ? {
+      date: stmt.forwardAvailableBalance.date,
+      amount: String(stmt.forwardAvailableBalance.value || 0),
+      currency: stmt.forwardAvailableBalance.currency || 'EUR',
+      isCredit: stmt.forwardAvailableBalance.isCredit !== false
     } : undefined,
     statementInfo: stmt.additionalInformation,
     transactions: (stmt.transactions || []).map((tx: MT940ParsedTransaction) => ({

@@ -5,6 +5,7 @@ export interface MergedStatement {
   accountId: string;
   statementNumber: string;
   sequenceNumber: string;
+  transactionReference: string;
   openingBalance: Balance;
   closingBalance: Balance;
   transactions: Transaction[];
@@ -60,6 +61,7 @@ export function mergeSingleStatement(statements: Statement[]): MergedStatement {
       accountId: stmt.accountId,
       statementNumber: stmt.statementNumber,
       sequenceNumber: stmt.sequenceNumber,
+      transactionReference: `STMT${stmt.statementNumber}`,
       openingBalance: { ...stmt.openingBalance },
       closingBalance: recalculated,
       transactions: [...stmt.transactions],
@@ -94,6 +96,7 @@ export function mergeSingleStatement(statements: Statement[]): MergedStatement {
     accountId: first.accountId,
     statementNumber: `${first.statementNumber}-${last.statementNumber}`,
     sequenceNumber: '1',
+    transactionReference: `STMT${first.statementNumber}-${last.statementNumber}`,
     openingBalance: { ...first.openingBalance },
     closingBalance: recalculatedClosing,
     transactions: allTransactions,

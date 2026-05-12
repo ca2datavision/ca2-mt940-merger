@@ -145,6 +145,52 @@ describe('mergeSingleStatement', () => {
     expect(merged.transactions[1].valueDate).toBe('2024-01-11');
     expect(merged.transactions[2].valueDate).toBe('2024-01-12');
   });
+
+  it('generates :20: transaction reference for single statement', () => {
+    const stmt = makeStatement({ statementNumber: '001' });
+    const merged = mergeSingleStatement([stmt]);
+
+    expect(merged.transactionReference).toBe('STMT001');
+  });
+
+  it('generates :20: transaction reference for merged statements', () => {
+    const stmt1 = makeStatement({
+      id: 'stmt-1',
+      statementNumber: '001',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: true },
+    });
+    const stmt2 = makeStatement({
+      id: 'stmt-2',
+      statementNumber: '003',
+      openingBalance: { date: '2024-02-01', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+    });
+
+    const merged = mergeSingleStatement([stmt1, stmt2]);
+
+    expect(merged.transactionReference).toBe('STMT001-003');
+  });
+
+  it('generates :20: showing full range for multiple statements', () => {
+    const stmt1 = makeStatement({
+      id: 'stmt-1',
+      statementNumber: '005',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: true },
+    });
+    const stmt2 = makeStatement({
+      id: 'stmt-2',
+      statementNumber: '007',
+      openingBalance: { date: '2024-02-01', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+    });
+    const stmt3 = makeStatement({
+      id: 'stmt-3',
+      statementNumber: '010',
+      openingBalance: { date: '2024-03-01', amount: new Decimal('1200'), currency: 'EUR', isCredit: true },
+    });
+
+    const merged = mergeSingleStatement([stmt3, stmt1, stmt2]);
+
+    expect(merged.transactionReference).toBe('STMT005-010');
+  });
 });
 
 describe('previewSingleStatementMerge', () => {

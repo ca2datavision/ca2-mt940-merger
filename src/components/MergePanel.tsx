@@ -130,6 +130,7 @@ export const MergePanel: React.FC = observer(() => {
       accountId: merged.accountId,
       statementNumber: merged.statementNumber,
       sequenceNumber: merged.sequenceNumber,
+      transactionReference: merged.transactionReference,
       openingBalance: {
         isCredit: merged.openingBalance.isCredit,
         date: merged.openingBalance.date,
