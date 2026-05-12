@@ -5,8 +5,8 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 const resources = {
   en: {
     translation: {
-      appTitle: 'MT940 to CSV Converter',
-      description: 'Convert MT940 bank statement files to CSV format for easy analysis and processing',
+      appTitle: 'MT940 Validator & Merger',
+      description: 'Validate, merge, and export MT940 bank statements. Supports CSV and MT940 output formats.',
       privacy: '🔒 100% Private: All processing happens directly in your browser - no data is ever uploaded to servers or stored',
       share: 'Share this tool with others - Note: Only the website link is shared, your files stay private!',
       language: 'Language',
@@ -131,8 +131,8 @@ const resources = {
   },
   ro: {
     translation: {
-      appTitle: 'Convertor MT940 în CSV',
-      description: 'Convertește fișiere de extrase bancare MT940 în format CSV pentru analiză și procesare ușoară',
+      appTitle: 'Validator & Îmbinare MT940',
+      description: 'Validează, îmbină și exportă extrase bancare MT940. Suportă formate de export CSV și MT940.',
       privacy: '🔒 100% Privat: Toată procesarea are loc direct în browser - datele nu sunt niciodată încărcate pe server sau stocate',
       share: 'Împărtășește acest instrument - Notă: Se distribuie doar link-ul website-ului, fișierele tale rămân private!',
       language: 'Limba',
