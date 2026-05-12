@@ -70,10 +70,9 @@ export const MergePanel: React.FC = observer(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileStore.files.length]);
 
-  // Auto-select all items when files load
-  // Auto-select all items when files load
+  // Auto-select all items only on first load (when nothing selected)
   useEffect(() => {
-    if (statementItems.length > 0) {
+    if (statementItems.length > 0 && selectedIds.size === 0) {
       setSelectedIds(new Set(statementItems.map(item => item.id)));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
