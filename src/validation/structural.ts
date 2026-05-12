@@ -121,14 +121,6 @@ export function validateStructure(
         message: `Statement ${index + 1}: Missing :28C: or :28: (statement number)`,
         lineNumber: stmt.startLine,
       });
-    } else if (stmt.has28 && !stmt.has28C) {
-      issues.push({
-        ...base,
-        severity: 'warning',
-        code: 'STRUCT_28_NONSTANDARD',
-        message: `Statement ${index + 1}: Uses :28: instead of standard :28C:`,
-        lineNumber: stmt.startLine,
-      });
     }
 
     if (!stmt.has60) {

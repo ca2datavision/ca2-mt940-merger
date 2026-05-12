@@ -34,7 +34,7 @@ describe('validateStructure', () => {
     expect(issues.some(i => i.code === 'STRUCT_MISSING_28')).toBe(true);
   });
 
-  it('warns for non-standard :28: instead of :28C:', () => {
+  it('accepts :28: as valid statement sequence format', () => {
     const content = `:20:REF123
 :25:ACCOUNT
 :28:1/1
@@ -42,9 +42,7 @@ describe('validateStructure', () => {
 :62F:C230131EUR1500,00`;
 
     const issues = validateStructure(content);
-    const warning = issues.find(i => i.code === 'STRUCT_28_NONSTANDARD');
-    expect(warning).toBeDefined();
-    expect(warning?.severity).toBe('warning');
+    expect(issues.filter(i => i.code.includes('28'))).toHaveLength(0);
   });
 
   it('detects missing :60F:/:60M: tag', () => {
