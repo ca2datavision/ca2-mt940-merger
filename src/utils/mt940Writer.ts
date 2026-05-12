@@ -239,7 +239,7 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
       isCredit: tx.isCredit,
       transactionType: tx.code,
       description: tx.description,
-      reference: tx.customerReference || 'NONREF',
+      reference: tx.customerReference?.trim() || 'NONREF',
       supplementaryDetails: undefined,
       extraDetails: tx.extraDetails
     }))

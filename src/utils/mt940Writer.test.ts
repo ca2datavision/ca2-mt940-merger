@@ -325,6 +325,42 @@ describe('convertParsedToWritable Mapping', () => {
     expect(result[0].forwardAvailableBalance?.date).toBe('2024-02-01');
   });
 
+  it('trims whitespace from customerReference', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'REF',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 1000 },
+        transactions: [
+          { id: '', code: 'NTRF', fundsCode: '', isCredit: true, isExpense: false, currency: 'EUR', description: 'Test', amount: 100, valueDate: '2024-01-15', entryDate: '2024-01-15', customerReference: '  REF001  ', bankReference: '' },
+        ],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].transactions![0].reference).toBe('REF001');
+  });
+
+  it('uses NONREF when customerReference is only whitespace', () => {
+    const parsed = {
+      statements: [{
+        referenceNumber: 'REF',
+        accountId: 'TEST123',
+        number: '1',
+        openingBalance: { isCredit: true, date: '2024-01-01', currency: 'EUR', value: 1000 },
+        closingBalance: { isCredit: true, date: '2024-01-31', currency: 'EUR', value: 1000 },
+        transactions: [
+          { id: '', code: 'NTRF', fundsCode: '', isCredit: true, isExpense: false, currency: 'EUR', description: 'Test', amount: 100, valueDate: '2024-01-15', entryDate: '2024-01-15', customerReference: '   ', bankReference: '' },
+        ],
+      }],
+    };
+
+    const result = convertParsedToWritable(parsed);
+    expect(result[0].transactions![0].reference).toBe('NONREF');
+  });
+
   it('outputs :64: tag for availableBalance', () => {
     const stmt: MT940Statement = {
       accountId: 'TEST123',
