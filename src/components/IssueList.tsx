@@ -120,7 +120,6 @@ export const IssueList: React.FC<IssueListProps> = ({ issues }) => {
         {groupedIssues.map(group => {
           const isCollapsed = collapsedGroups.has(group.name);
           const groupErrorCount = group.issues.filter(i => i.severity === 'error').length;
-          const groupWarningCount = group.issues.filter(i => i.severity === 'warning').length;
 
           return (
             <div key={group.name} className="border-b border-gray-100 last:border-b-0">

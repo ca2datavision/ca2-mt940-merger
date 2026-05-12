@@ -1,8 +1,84 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { X } from 'lucide-react';
+import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
 import type { MT940Statement, MT940Transaction } from '../types/mt940';
+
+interface TransactionTableProps {
+  transactions: MT940Transaction[];
+  formatDate: (dateStr: string | undefined) => string;
+}
+
+const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, formatDate }) => {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+
+  const toggleRow = (index: number) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
+
+  if (!transactions || transactions.length === 0) {
+    return <p className="text-gray-500 text-sm">No transactions</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200 text-sm">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="w-8"></th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Value Date</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Entry Date</th>
+            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer Ref</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Ref</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {transactions.map((txn, idx) => {
+            const isExpanded = expandedRows.has(idx);
+            const hasDescription = txn.description && txn.description.trim().length > 0;
+            return (
+              <React.Fragment key={idx}>
+                <tr className={hasDescription ? 'cursor-pointer hover:bg-gray-50' : ''} onClick={() => hasDescription && toggleRow(idx)}>
+                  <td className="px-2 py-2 text-gray-400">
+                    {hasDescription && (
+                      isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
+                    )}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">{formatDate(txn.valueDate)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">{formatDate(txn.entryDate)}</td>
+                  <td className={`px-3 py-2 whitespace-nowrap text-right font-mono ${txn.isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                    {txn.isCredit ? '+' : '-'}{txn.amount?.toString() || '0.00'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">{txn.transactionType || '-'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.customerReference || '-'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.bankReference || '-'}</td>
+                </tr>
+                {isExpanded && hasDescription && (
+                  <tr className="bg-gray-50">
+                    <td></td>
+                    <td colSpan={6} className="px-3 py-2">
+                      <div className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{txn.description}</div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export const PreviewModal = observer(() => {
   const file = fileStore.selectedFile;
@@ -45,49 +121,7 @@ export const PreviewModal = observer(() => {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Currency</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {statement.transactions.map((transaction: MT940Transaction, index: number) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatDate(transaction.entryDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.amount}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.currency || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.transactionType}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          <div className="max-w-md break-words">
-                            {transaction.extraDetails?.name || '-'}
-                            {transaction.description && (
-                              <span className="block text-gray-500 mt-1">{transaction.description}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {transaction.balance?.amount || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <TransactionTable transactions={statement.transactions} formatDate={formatDate} />
             </div>
           ))}
         </div>
