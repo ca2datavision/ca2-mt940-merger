@@ -44,6 +44,21 @@ describe('MT940 Writer', () => {
     expect(output).toContain(':62F:');
   });
 
+  it('preserves :20: transaction reference from source', () => {
+    const stmtWithRef: MT940Statement = {
+      ...sampleStatement,
+      transactionReference: '73814260',
+    };
+    const output = writeMT940([stmtWithRef]);
+    expect(output).toContain(':20:73814260');
+    expect(output).not.toContain(':20:STARTUMS');
+  });
+
+  it('uses default STARTUMS when no transaction reference provided', () => {
+    const output = writeMT940([sampleStatement]);
+    expect(output).toContain(':20:STARTUMS');
+  });
+
   it('round-trips through mt940-js parser', async () => {
     const output = writeMT940([sampleStatement]);
     const buffer = new TextEncoder().encode(output);

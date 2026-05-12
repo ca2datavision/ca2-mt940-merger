@@ -28,6 +28,7 @@ export interface MT940Transaction {
   description?: string;
   reference?: string;
   bankReference?: string;
+  supplementaryDetails?: string;
   extraDetails?: {
     name?: string;
     address?: string;
@@ -41,6 +42,7 @@ export interface MT940Statement {
   accountId?: string;
   statementNumber?: string;
   sequenceNumber?: string;
+  transactionReference?: string;
   openingBalance?: {
     date?: string;
     amount?: string;
@@ -118,7 +120,7 @@ export function writeMT940(
   const lines: string[] = [];
 
   for (const stmt of statements) {
-    const refNum = options.referenceNumber || 'STARTUMS';
+    const refNum = stmt.transactionReference || options.referenceNumber || 'STARTUMS';
     lines.push(`:20:${refNum}`);
     lines.push(`:25:${stmt.accountId || 'UNKNOWN'}`);
 
