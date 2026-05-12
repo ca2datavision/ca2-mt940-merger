@@ -103,6 +103,30 @@ const resources = {
         singleConfirmTitle: 'Confirm Single Statement Merge',
         singleConfirmMessage: 'Merging into a single statement will recalculate the closing balance. This may differ from the original statement numbers. Only use this if your system requires a single consolidated statement.',
         confirmDownload: 'Download'
+      },
+      validationCodes: {
+        ARITHMETIC_MISMATCH: 'Arithmetic mismatch: calculated balance differs from closing balance',
+        BALANCE_DISCONTINUITY: 'Balance discontinuity between statements',
+        MISSING_OPENING_BALANCE: 'Missing opening balance (:60F:/:60M:)',
+        MISSING_CLOSING_BALANCE: 'Missing closing balance (:62F:/:62M:)',
+        STRUCT_MISSING_25: 'Missing account identifier (:25:)',
+        STRUCT_MISSING_28: 'Missing statement number (:28C:/:28:)',
+        STRUCT_MISSING_60: 'Missing opening balance (:60F:/:60M:)',
+        STRUCT_MISSING_62: 'Missing closing balance (:62F:/:62M:)',
+        STRUCT_28_NONSTANDARD: 'Non-standard statement number format (:28: instead of :28C:)',
+        STRUCT_NO_TAGS: 'No MT940 tags found in file',
+        STRUCT_NO_STATEMENTS: 'No valid statements found',
+        TXN_MALFORMED_61: 'Malformed transaction line (:61:)',
+        BAL_MALFORMED_65: 'Malformed forward balance (:65:)',
+        DUP_FILE: 'Duplicate file detected',
+        DUP_STATEMENT: 'Duplicate statement detected',
+        DUP_TRANSACTION: 'Duplicate transaction detected',
+        MERGE_NO_STATEMENTS: 'No statements available for merge',
+        MERGE_VALIDATION_ERRORS: 'Cannot merge: validation errors present',
+        MERGE_MULTIPLE_ACCOUNTS: 'Cannot merge: multiple accounts',
+        MERGE_MULTIPLE_CURRENCIES: 'Cannot merge: multiple currencies',
+        MERGE_BALANCE_GAP: 'Cannot merge: balance gap between statements',
+        MERGE_NOT_CHRONOLOGICAL: 'Cannot merge: statements not in chronological order'
       }
     }
   },
@@ -206,6 +230,30 @@ const resources = {
         singleConfirmTitle: 'Confirmă Îmbinarea în Extras Unic',
         singleConfirmMessage: 'Îmbinarea într-un singur extras va recalcula soldul final. Acesta poate diferi de numerele extraselor originale. Folosiți această opțiune doar dacă sistemul dvs. necesită un singur extras consolidat.',
         confirmDownload: 'Descarcă'
+      },
+      validationCodes: {
+        ARITHMETIC_MISMATCH: 'Nepotrivire aritmetică: soldul calculat diferă de soldul final',
+        BALANCE_DISCONTINUITY: 'Discontinuitate de sold între extrase',
+        MISSING_OPENING_BALANCE: 'Sold inițial lipsă (:60F:/:60M:)',
+        MISSING_CLOSING_BALANCE: 'Sold final lipsă (:62F:/:62M:)',
+        STRUCT_MISSING_25: 'Identificator cont lipsă (:25:)',
+        STRUCT_MISSING_28: 'Număr extras lipsă (:28C:/:28:)',
+        STRUCT_MISSING_60: 'Sold inițial lipsă (:60F:/:60M:)',
+        STRUCT_MISSING_62: 'Sold final lipsă (:62F:/:62M:)',
+        STRUCT_28_NONSTANDARD: 'Format nestandard pentru numărul extrasului (:28: în loc de :28C:)',
+        STRUCT_NO_TAGS: 'Nu s-au găsit etichete MT940 în fișier',
+        STRUCT_NO_STATEMENTS: 'Nu s-au găsit extrase valide',
+        TXN_MALFORMED_61: 'Linie tranzacție malformată (:61:)',
+        BAL_MALFORMED_65: 'Sold anticipat malformat (:65:)',
+        DUP_FILE: 'Fișier duplicat detectat',
+        DUP_STATEMENT: 'Extras duplicat detectat',
+        DUP_TRANSACTION: 'Tranzacție duplicată detectată',
+        MERGE_NO_STATEMENTS: 'Nu există extrase disponibile pentru îmbinare',
+        MERGE_VALIDATION_ERRORS: 'Nu se poate îmbina: erori de validare prezente',
+        MERGE_MULTIPLE_ACCOUNTS: 'Nu se poate îmbina: conturi multiple',
+        MERGE_MULTIPLE_CURRENCIES: 'Nu se poate îmbina: valute multiple',
+        MERGE_BALANCE_GAP: 'Nu se poate îmbina: diferență de sold între extrase',
+        MERGE_NOT_CHRONOLOGICAL: 'Nu se poate îmbina: extrasele nu sunt în ordine cronologică'
       }
     }
   }
