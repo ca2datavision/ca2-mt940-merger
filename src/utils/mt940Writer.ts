@@ -240,7 +240,7 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
       transactionType: tx.code,
       description: tx.description,
       reference: tx.customerReference || 'NONREF',
-      supplementaryDetails: tx.id,
+      supplementaryDetails: undefined,
       extraDetails: tx.extraDetails
     }))
   }));

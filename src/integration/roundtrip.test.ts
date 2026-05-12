@@ -218,6 +218,28 @@ describe('Export Fidelity Regression Tests', () => {
       const idx61 = lines.findIndex(l => l.startsWith(':61:'));
       expect(lines[idx61 + 1]).toBe('SUPPLEMENTARY INFO');
     });
+
+    it('does NOT emit false supplementary lines from tx.id hash', async () => {
+      const input = `:20:REF123
+:25:TESTACCOUNT
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:2605050505C100,00NTRF REF001
+:86:Transaction details
+:62F:C260510EUR1100,00
+-`;
+      const parsed = await parseBuffer(input);
+      const writable = convertParsedToWritable({ statements: parsed });
+      const output = writeMT940(writable);
+
+      const lines = output.split(/\r?\n/);
+      const idx61 = lines.findIndex(l => l.startsWith(':61:'));
+      expect(idx61).toBeGreaterThan(-1);
+      // Next line should be :86: (the description), NOT a hash or random string
+      expect(lines[idx61 + 1]).toMatch(/^:86:/);
+      // Ensure no MD5-like hash appears anywhere
+      expect(output).not.toMatch(/[a-f0-9]{32}/);
+    });
   });
 
   describe('Full Round-Trip Fidelity', () => {
