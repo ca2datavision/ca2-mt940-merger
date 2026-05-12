@@ -79,7 +79,8 @@ function convertLine(line: ParsedLine): JsonLine {
 }
 
 export const jsonFormatter: Formatter = {
-  format(lines: ParsedLine[], _options: FormatterOptions = {}): string {
+  format(lines: ParsedLine[], _options?: FormatterOptions): string {
+    void _options;
     const output: JsonOutput = {
       lines: lines.map(convertLine),
     };
@@ -98,7 +99,8 @@ export const jsonFormatter: Formatter = {
     return JSON.stringify(output, null, 2);
   },
 
-  formatWithSummary(lines: ParsedLine[], summary: DocumentSummary, options: FormatterOptions = {}): string {
+  formatWithSummary(lines: ParsedLine[], summary: DocumentSummary, _options?: FormatterOptions): string {
+    void _options;
     const output: JsonOutput = {
       summary: {
         fileName: summary.fileName,

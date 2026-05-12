@@ -253,7 +253,8 @@ function groupByStatement(lines: ParsedLine[]): ParsedLine[][] {
 }
 
 export const htmlFormatter: Formatter = {
-  format(lines: ParsedLine[], _options: FormatterOptions = {}): string {
+  format(lines: ParsedLine[], _options?: FormatterOptions): string {
+    void _options;
     const groups = groupByStatement(lines);
     const body: string[] = [];
 
@@ -289,7 +290,8 @@ ${JS}
 </html>`;
   },
 
-  formatWithSummary(lines: ParsedLine[], summary: DocumentSummary, options: FormatterOptions = {}): string {
+  formatWithSummary(lines: ParsedLine[], summary: DocumentSummary, _options?: FormatterOptions): string {
+    void _options;
     const groups = groupByStatement(lines);
     const body: string[] = [];
 
