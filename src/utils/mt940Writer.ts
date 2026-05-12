@@ -96,7 +96,11 @@ function formatTransactionLine(tx: MT940Transaction): string {
   const txType = (tx.transactionType || 'NTRF').slice(0, 4).padEnd(4, ' ');
   const ref = (tx.reference || 'NONREF').slice(0, 16);
 
-  return `:61:${valueDate}${entryDate}${dcMark}${amount}${txType}${ref}`;
+  let line = `:61:${valueDate}${entryDate}${dcMark}${amount}${txType}${ref}`;
+  if (tx.supplementaryDetails) {
+    line += `\r\n${tx.supplementaryDetails}`;
+  }
+  return line;
 }
 
 function formatInfoLine(tx: MT940Transaction): string {
@@ -178,6 +182,7 @@ export function convertParsedToWritable(parsed: MT940ParsedData): MT940Statement
       transactionType: tx.code,
       description: tx.description,
       reference: tx.customerReference || 'NONREF',
+      supplementaryDetails: tx.id,
       extraDetails: tx.extraDetails
     }))
   }));
