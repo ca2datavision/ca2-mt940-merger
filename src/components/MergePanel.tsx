@@ -39,8 +39,6 @@ export const MergePanel: React.FC = observer(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileStore.batchIssues.length, fileStore.files.length]);
 
-  const errorCount = selectionEligibility.multiMessage.blockers.length;
-
   const statementItems = useMemo((): StatementItem[] => {
     const items: StatementItem[] = [];
     for (const file of fileStore.files) {
@@ -95,6 +93,8 @@ export const MergePanel: React.FC = observer(() => {
     }
     return analyzeMergeEligibility(selectedValidationStatements, selectedIssues);
   }, [selectedValidationStatements, selectedIssues]);
+
+  const errorCount = selectionEligibility.multiMessage.blockers.length;
 
   const multiMessageContent = useMemo((): string => {
     if (selectedStatements.length === 0) return '';
