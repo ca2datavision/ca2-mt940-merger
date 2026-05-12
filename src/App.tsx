@@ -1,7 +1,8 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
+import type { ValidationIssue } from './types/validation';
 import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, FileJson, FileText as FileReport } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
 import { toCSV, ENHANCED_HEADERS } from './utils/csv';
@@ -22,6 +23,21 @@ const App = observer(() => {
   const { t } = useTranslation();
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const allIssues = useMemo((): ValidationIssue[] => {
+    const issues: ValidationIssue[] = [...fileStore.batchIssues];
+    for (const file of fileStore.files) {
+      if (file.validationIssues) {
+        issues.push(...file.validationIssues.map(issue => ({
+          ...issue,
+          fileName: issue.fileName || file.name,
+          fileId: issue.fileId || file.id,
+        })));
+      }
+    }
+    return issues;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileStore.batchIssues.length, fileStore.files.length]);
 
   const shareUrl = window.location.href;
   const shareLinks = {
@@ -218,8 +234,8 @@ const App = observer(() => {
               </ul>
             </div>
 
-            {/* Batch Validation Issues */}
-            <IssueList issues={fileStore.batchIssues} />
+            {/* All Validation Issues (Batch + Per-File) */}
+            <IssueList issues={allIssues} />
 
             {/* ZIP Ignored/Failed Files */}
             {(fileStore.zipIgnored.length > 0 || fileStore.zipFailed.length > 0) && (
