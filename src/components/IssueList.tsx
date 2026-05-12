@@ -96,7 +96,9 @@ export const IssueList: React.FC<IssueListProps> = ({ issues }) => {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-700">{issue.message}</p>
+                  <p className="text-sm text-gray-700">
+                    {t(`validationCodes.${issue.code}`, { defaultValue: issue.message })}
+                  </p>
                 </div>
               </div>
             </li>
