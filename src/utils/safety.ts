@@ -111,8 +111,11 @@ export async function extractZipSafely(zipData: ArrayBuffer): Promise<ZipExtract
 
   // Filter entries
   for (const name of allEntries) {
+    const filename = name.split('/').pop() || name;
     if (isMacOSMetadata(name)) {
       ignored.push({ name, reason: 'macOS metadata' });
+    } else if (/^readme\.txt$/i.test(filename)) {
+      ignored.push({ name, reason: 'readme file' });
     } else if (!hasAllowedExtension(name)) {
       ignored.push({ name, reason: 'unsupported extension' });
     } else {
