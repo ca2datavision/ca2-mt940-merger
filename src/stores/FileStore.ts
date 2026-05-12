@@ -3,7 +3,7 @@ import { extractZipSafely, type IgnoredFile } from '../utils/safety';
 import { validateContinuity, detectAllDuplicates } from '../validation';
 import { parseFile } from '../workers/parseService';
 import type { ValidationIssue, Statement } from '../types/validation';
-import type { EnhancedCSVRow, CSVMode } from '../utils/csv';
+import type { EnhancedCSVRow } from '../utils/csv';
 import type { FileInfo, StatementInfo, TransactionInfo } from '../validation/duplicates';
 import type { MT940ParsedData } from '../types/mt940';
 

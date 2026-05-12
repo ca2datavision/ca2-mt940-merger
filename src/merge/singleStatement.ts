@@ -1,4 +1,3 @@
-import Decimal from 'decimal.js';
 import type { Statement, Transaction, Balance } from '../types/validation';
 import { analyzeMergeEligibility } from '../validation/merge';
 

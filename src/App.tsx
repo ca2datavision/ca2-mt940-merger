@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { FileText, Github, Mail, Upload, X, Download, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, FileJson, FileText as FileReport } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
-import { toCSV } from './utils/csv';
+import { toCSV, ENHANCED_HEADERS } from './utils/csv';
 import { buildValidationResult, validationResultToJSON, generateValidationReport, downloadFile } from './utils/exportValidation';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
@@ -83,6 +83,25 @@ const App = observer(() => {
     ];
 
     const csvContent = toCSV(headers, rows);
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${filename}.csv`;
+    link.click();
+  }, []);
+
+  const downloadEnhancedCSV = useCallback(() => {
+    fileStore.validateBatch();
+    const rows = fileStore.convertToEnhancedCSV();
+    const { min, max } = fileStore.getTransactionDateRange();
+    const accountId = fileStore.getFirstAccountId();
+    const accountSuffix = accountId ? `_${accountId}` : '';
+    const filename = min === max ?
+      `transactions_enhanced${accountSuffix}_${min}` :
+      `transactions_enhanced${accountSuffix}_${min}_to_${max}`;
+
+    const csvContent = toCSV(ENHANCED_HEADERS, rows);
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -287,6 +306,14 @@ const App = observer(() => {
               >
                 <Download className="h-4 w-4 mr-2" />
                 {t('download')}
+              </button>
+              <button
+                onClick={downloadEnhancedCSV}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                title={t('downloads.enhancedTitle')}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {t('downloads.enhanced')}
               </button>
               </div>
             </div>

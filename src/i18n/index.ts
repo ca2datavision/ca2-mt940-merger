@@ -71,7 +71,9 @@ const resources = {
         json: 'JSON',
         jsonTitle: 'Download validation result as JSON',
         report: 'Report',
-        reportTitle: 'Download validation report as Markdown'
+        reportTitle: 'Download validation report as Markdown',
+        enhanced: 'Enhanced CSV',
+        enhancedTitle: 'Download 19-column enhanced CSV with full details'
       },
       progress: {
         title: 'Processing Files',
@@ -97,7 +99,10 @@ const resources = {
         multiDesc: 'Keep original statement structure',
         singleDesc: 'Combine all into one statement',
         disabledErrors: '{{count}} validation error(s) - fix before merging',
-        disabledNoSelection: 'Select statements to enable merge'
+        disabledNoSelection: 'Select statements to enable merge',
+        singleConfirmTitle: 'Confirm Single Statement Merge',
+        singleConfirmMessage: 'Merging into a single statement will recalculate the closing balance. This may differ from the original statement numbers. Only use this if your system requires a single consolidated statement.',
+        confirmDownload: 'Download'
       }
     }
   },
@@ -169,7 +174,9 @@ const resources = {
         json: 'JSON',
         jsonTitle: 'Descarcă rezultatul validării ca JSON',
         report: 'Raport',
-        reportTitle: 'Descarcă raportul de validare ca Markdown'
+        reportTitle: 'Descarcă raportul de validare ca Markdown',
+        enhanced: 'CSV Extins',
+        enhancedTitle: 'Descarcă CSV extins cu 19 coloane și detalii complete'
       },
       progress: {
         title: 'Se procesează fișierele',
@@ -195,7 +202,10 @@ const resources = {
         multiDesc: 'Păstrează structura originală',
         singleDesc: 'Combină totul într-un singur extras',
         disabledErrors: '{{count}} eroare(i) de validare - corectați înainte de îmbinare',
-        disabledNoSelection: 'Selectați extrase pentru a activa îmbinarea'
+        disabledNoSelection: 'Selectați extrase pentru a activa îmbinarea',
+        singleConfirmTitle: 'Confirmă Îmbinarea în Extras Unic',
+        singleConfirmMessage: 'Îmbinarea într-un singur extras va recalcula soldul final. Acesta poate diferi de numerele extraselor originale. Folosiți această opțiune doar dacă sistemul dvs. necesită un singur extras consolidat.',
+        confirmDownload: 'Descarcă'
       }
     }
   }
