@@ -8,8 +8,6 @@ import {
   groupByStatement,
   getTokensByTag,
   getFullTagContent,
-  LexerToken,
-  TokenType,
 } from './lexer.js';
 
 describe('MT940 Lexer', () => {

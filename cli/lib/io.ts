@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, writeFileSync, renameSync, existsSync, unlinkSync } from 'fs';
-import { resolve, dirname, basename } from 'path';
+import { resolve, basename } from 'path';
 import { tmpdir } from 'os';
 import { randomBytes } from 'crypto';
 
