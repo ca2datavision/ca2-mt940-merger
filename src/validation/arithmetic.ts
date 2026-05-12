@@ -21,9 +21,10 @@ function createIssue(
   severity: ValidationIssue['severity'],
   code: string,
   message: string,
-  statementIndex?: number
+  statementIndex?: number,
+  suggestion?: string
 ): ValidationIssue {
-  return { severity, code, message, field: 'arithmetic', statementIndex };
+  return { severity, code, message, field: 'arithmetic', statementIndex, suggestion };
 }
 
 export function calculateTransactionTotals(transactions: Transaction[]): {
@@ -90,7 +91,7 @@ export function validateArithmetic(
       `  Difference: ${difference.toFixed(2)}`,
     ].join('\n');
 
-    issues.push(createIssue('error', 'ARITHMETIC_MISMATCH', message, statementIndex));
+    issues.push(createIssue('error', 'ARITHMETIC_MISMATCH', message, statementIndex, 'Verify that all transactions are included and amounts are correct. Check for missing or duplicate entries.'));
   }
 
   return { breakdown, issues };

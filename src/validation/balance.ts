@@ -27,9 +27,10 @@ function createIssue(
   code: string,
   message: string,
   field?: string,
-  statementIndex?: number
+  statementIndex?: number,
+  suggestion?: string
 ): ValidationIssue {
-  return { severity, code, message, field, statementIndex };
+  return { severity, code, message, field, statementIndex, suggestion };
 }
 
 export function parseBalanceTag(raw: string): RawBalance | null {
@@ -49,7 +50,7 @@ export function validateDate(date: string, field: string, statementIndex?: numbe
   const issues: ValidationIssue[] = [];
 
   if (!DATE_PATTERN.test(date)) {
-    issues.push(createIssue('error', 'INVALID_DATE_FORMAT', `Invalid date format: ${date} (expected YYMMDD)`, field, statementIndex));
+    issues.push(createIssue('error', 'INVALID_DATE_FORMAT', `Invalid date format: ${date} (expected YYMMDD)`, field, statementIndex, 'Ensure date is 6 digits in YYMMDD format (e.g., 240115 for Jan 15, 2024)'));
     return issues;
   }
 
@@ -81,7 +82,7 @@ export function validateAmount(amount: string, field: string, statementIndex?: n
   const issues: ValidationIssue[] = [];
 
   if (!AMOUNT_PATTERN.test(amount)) {
-    issues.push(createIssue('error', 'INVALID_AMOUNT_FORMAT', `Invalid amount format: ${amount} (expected comma decimal)`, field, statementIndex));
+    issues.push(createIssue('error', 'INVALID_AMOUNT_FORMAT', `Invalid amount format: ${amount} (expected comma decimal)`, field, statementIndex, 'Use comma as decimal separator (e.g., 1234,56 for 1234.56)'));
   }
 
   return issues;
@@ -157,11 +158,11 @@ export function validateStatementBalances(
   const issues: ValidationIssue[] = [];
 
   if (!openingBalance) {
-    issues.push(createIssue('error', 'MISSING_OPENING_BALANCE', 'Missing opening balance (:60F: or :60M:)', 'openingBalance', statementIndex));
+    issues.push(createIssue('error', 'MISSING_OPENING_BALANCE', 'Missing opening balance (:60F: or :60M:)', 'openingBalance', statementIndex, 'Add :60F: tag with opening balance (e.g., :60F:C240101EUR1000,00)'));
   }
 
   if (!closingBalance) {
-    issues.push(createIssue('error', 'MISSING_CLOSING_BALANCE', 'Missing closing balance (:62F: or :62M:)', 'closingBalance', statementIndex));
+    issues.push(createIssue('error', 'MISSING_CLOSING_BALANCE', 'Missing closing balance (:62F: or :62M:)', 'closingBalance', statementIndex, 'Add :62F: tag with closing balance (e.g., :62F:C240131EUR1500,00)'));
   }
 
   issues.push(...validateCurrencyConsistency(openingBalance, closingBalance, availableBalance, statementIndex));

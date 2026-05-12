@@ -17,6 +17,7 @@ export interface ValidationIssue {
   transactionIndex?: number;
   field?: string;
   lineNumber?: number;
+  suggestion?: string;
 }
 
 export interface Balance {
