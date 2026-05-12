@@ -88,7 +88,8 @@ function formatBalanceLine(
 function formatTransactionLine(tx: MT940Transaction): string {
   const valueDate = formatDate(tx.valueDate || tx.entryDate);
   const entryDate = formatDate(tx.entryDate)?.slice(2, 6) || '';
-  const dcMark = tx.isCredit ? 'C' : 'D';
+  const isCredit = tx.isCredit ?? (parseFloat(String(tx.amount || '0').replace(',', '.')) >= 0);
+  const dcMark = isCredit ? 'C' : 'D';
   const amount = formatAmount(tx.amount);
   const txType = (tx.transactionType || 'NTRF').slice(0, 4).padEnd(4, ' ');
   const ref = (tx.reference || 'NONREF').slice(0, 16);
