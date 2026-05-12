@@ -97,20 +97,8 @@ function formatTransactionLine(tx: MT940Transaction): string {
 }
 
 function formatInfoLine(tx: MT940Transaction): string {
-  const parts: string[] = [];
-
-  if (tx.description) {
-    parts.push(tx.description);
-  }
-  if (tx.extraDetails?.name) {
-    parts.push(tx.extraDetails.name);
-  }
-  if (tx.extraDetails?.account) {
-    parts.push(tx.extraDetails.account);
-  }
-
-  const info = parts.join(' ').slice(0, 390);
-  return info ? `:86:${info}` : '';
+  if (!tx.description) return '';
+  return `:86:${tx.description}`;
 }
 
 export function writeMT940(
