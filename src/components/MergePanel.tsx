@@ -248,6 +248,18 @@ export const MergePanel: React.FC = observer(() => {
     URL.revokeObjectURL(link.href);
   }, []);
 
+  const downloadValidationJSON = useCallback(() => {
+    const result = buildValidationResult(fileStore.files, fileStore.batchIssues);
+    const json = validationResultToJSON(result);
+    downloadFile(json, 'validation-result.json', 'application/json');
+  }, []);
+
+  const downloadValidationReport = useCallback(() => {
+    const result = buildValidationResult(fileStore.files, fileStore.batchIssues);
+    const report = generateValidationReport(result);
+    downloadFile(report, 'validation-report.md', 'text/markdown');
+  }, []);
+
   if (statementItems.length === 0) {
     return null;
   }
@@ -440,6 +452,22 @@ export const MergePanel: React.FC = observer(() => {
               >
                 <Eye className="h-3 w-3 mr-1" />
                 {t('merge.previewMultiLabel', { defaultValue: 'Preview Multi' })}
+              </button>
+              <button
+                onClick={downloadValidationJSON}
+                className="inline-flex items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-500 bg-white hover:bg-gray-50"
+                title={t('downloads.jsonTitle', { defaultValue: 'Download validation result as JSON' })}
+              >
+                <FileJson className="h-3 w-3 mr-1" />
+                {t('downloads.json', { defaultValue: 'JSON' })}
+              </button>
+              <button
+                onClick={downloadValidationReport}
+                className="inline-flex items-center px-2 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-500 bg-white hover:bg-gray-50"
+                title={t('downloads.reportTitle', { defaultValue: 'Download validation report' })}
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                {t('downloads.report', { defaultValue: 'Report' })}
               </button>
             </div>
           )}
