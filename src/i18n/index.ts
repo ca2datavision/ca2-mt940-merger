@@ -105,7 +105,6 @@ const resources = {
         confirmDownload: 'Download'
       },
       validationCodes: {
-        ARITHMETIC_MISMATCH: 'Arithmetic mismatch: calculated balance differs from closing balance',
         BALANCE_DISCONTINUITY: 'Balance discontinuity between statements',
         MISSING_OPENING_BALANCE: 'Missing opening balance (:60F:/:60M:)',
         MISSING_CLOSING_BALANCE: 'Missing closing balance (:62F:/:62M:)',
@@ -232,7 +231,6 @@ const resources = {
         confirmDownload: 'Descarcă'
       },
       validationCodes: {
-        ARITHMETIC_MISMATCH: 'Nepotrivire aritmetică: soldul calculat diferă de soldul final',
         BALANCE_DISCONTINUITY: 'Discontinuitate de sold între extrase',
         MISSING_OPENING_BALANCE: 'Sold inițial lipsă (:60F:/:60M:)',
         MISSING_CLOSING_BALANCE: 'Sold final lipsă (:62F:/:62M:)',
