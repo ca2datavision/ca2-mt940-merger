@@ -184,7 +184,7 @@ const App = observer(() => {
               type="file"
               multiple
               onClick={(e) => (e.target as HTMLInputElement).value = ''}
-              accept=".sta,.mt940,.mt,.txt"
+              accept=".sta,.mt940,.mt,.txt,.zip,application/zip"
               className="hidden"
               onChange={handleFileUpload}
             />
