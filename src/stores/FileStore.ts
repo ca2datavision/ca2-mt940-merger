@@ -3,6 +3,7 @@ import { extractZipSafely, type IgnoredFile } from '../utils/safety';
 import { validateContinuity, detectAllDuplicates } from '../validation';
 import { parseFile } from '../workers/parseService';
 import type { ValidationIssue, Statement } from '../types/validation';
+import type { EnhancedCSVRow, CSVMode } from '../utils/csv';
 import type { FileInfo, StatementInfo, TransactionInfo } from '../validation/duplicates';
 import type { MT940ParsedData } from '../types/mt940';
 
@@ -335,6 +336,52 @@ class FileStore {
             detaliiTranzactie: transaction.description || '',
             soldIntermediar: transaction.balance?.amount || '',
             cuiContrapartida: transaction.extraDetails?.fiscalCode || ''
+          });
+        }
+      }
+    }
+
+    return rows;
+  }
+
+  convertToEnhancedCSV(): EnhancedCSVRow[] {
+    const rows: EnhancedCSVRow[] = [];
+    const seenTransactions: Set<string> = new Set();
+
+    for (const file of this.files) {
+      if (!file.parsed) continue;
+
+      for (const statement of file.parsed.statements) {
+        for (const transaction of statement.transactions) {
+          const fingerprint = `${statement.accountId}-${transaction.entryDate}-${transaction.amount}-${transaction.transactionType}`;
+
+          if (seenTransactions.has(fingerprint)) continue;
+          seenTransactions.add(fingerprint);
+
+          const signedAmount = transaction.isCredit
+            ? transaction.amount.toString()
+            : `-${transaction.amount.toString()}`;
+
+          rows.push({
+            source_file: file.name,
+            zip_path: '',
+            account_id: statement.accountId || '',
+            currency: transaction.currency || statement.currency || '',
+            statement_number: statement.statementNumber || '',
+            sequence_number: statement.sequenceNumber || '',
+            value_date: transaction.valueDate || '',
+            entry_date: transaction.entryDate || '',
+            debit_credit: transaction.isCredit ? 'C' : 'D',
+            amount: transaction.amount?.toString() || '',
+            signed_amount: signedAmount,
+            transaction_type: transaction.transactionType || '',
+            customer_reference: transaction.customerReference || '',
+            bank_reference: transaction.bankReference || '',
+            supplementary_details: transaction.extraDetails?.name || '',
+            narrative: transaction.description || '',
+            opening_balance: statement.openingBalance?.amount?.toString() || '',
+            closing_balance: statement.closingBalance?.amount?.toString() || '',
+            fingerprint,
           });
         }
       }
