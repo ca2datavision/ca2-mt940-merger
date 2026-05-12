@@ -334,7 +334,7 @@ class FileStore {
             contContrapartida: transaction.extraDetails?.account || '',
             bancaContrapartida: transaction.extraDetails?.bankName || '',
             detaliiTranzactie: transaction.description || '',
-            soldIntermediar: transaction.balance?.amount || '',
+            soldIntermediar: transaction.balance?.value || '',
             cuiContrapartida: transaction.extraDetails?.fiscalCode || ''
           });
         }
