@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown } from 'lucide-react';
@@ -9,8 +9,6 @@ import { mergeSingleStatement as mergeSingleStatementModule } from '../merge/sin
 import { toCSV, ENHANCED_HEADERS } from '../utils/csv';
 import type { MT940Statement } from '../utils/mt940Writer';
 import type { ValidationIssue, Statement } from '../types/validation';
-
-type ExportMode = 'csv' | 'mt940';
 
 interface StatementItem {
   id: string;
@@ -30,7 +28,6 @@ export const MergePanel: React.FC = observer(() => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewMode, setPreviewMode] = useState<'multi' | 'single'>('multi');
   const [showSingleConfirm, setShowSingleConfirm] = useState(false);
-  const [exportMode, setExportMode] = useState<ExportMode>('csv');
 
   const allIssues = useMemo((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [...fileStore.batchIssues];
@@ -70,6 +67,13 @@ export const MergePanel: React.FC = observer(() => {
     return items;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileStore.files.length]);
+
+  // Auto-select all items when files load
+  useEffect(() => {
+    if (statementItems.length > 0) {
+      setSelectedIds(new Set(statementItems.map(item => item.id)));
+    }
+  }, [statementItems.length]);
 
   const selectedItems = useMemo(() => {
     return statementItems.filter(item => selectedIds.has(item.id));
@@ -318,120 +322,100 @@ export const MergePanel: React.FC = observer(() => {
           </span>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="mb-3 flex items-center gap-1 p-1 bg-gray-200 rounded-lg w-fit">
-          <button
-            onClick={() => setExportMode('csv')}
-            className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              exportMode === 'csv'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-            title={t('merge.csvModeTooltip', { defaultValue: 'Export transactions to spreadsheet format' })}
-          >
-            <Table className="h-3 w-3 mr-1.5" />
-            {t('merge.csvMode', { defaultValue: 'CSV Export' })}
-          </button>
-          <button
-            onClick={() => setExportMode('mt940')}
-            className={`inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              exportMode === 'mt940'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-            title={t('merge.mt940ModeTooltip', { defaultValue: 'Merge statements into bank file format' })}
-          >
-            <FileStack className="h-3 w-3 mr-1.5" />
-            {t('merge.mt940Mode', { defaultValue: 'MT940 Merge' })}
-          </button>
+        {/* Side-by-Side Export Layout */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Left: CSV Export */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+              <Table className="h-3 w-3" />
+              {t('merge.csvMode', { defaultValue: 'CSV Export' })}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={downloadCSV}
+                className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
+                title={t('merge.csvBasicTooltip', { defaultValue: 'Download basic CSV with essential fields' })}
+              >
+                <Download className="h-3 w-3 mr-1" />
+                {t('merge.downloadCsv', { defaultValue: 'Download CSV' })}
+              </button>
+              <button
+                onClick={downloadEnhancedCSV}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                title={t('merge.csvEnhancedTooltip', { defaultValue: 'Download enhanced CSV with all 19 fields including fingerprints' })}
+              >
+                <FileDown className="h-3 w-3 mr-1" />
+                {t('merge.downloadEnhancedCsv', { defaultValue: 'Enhanced CSV' })}
+              </button>
+            </div>
+          </div>
+
+          {/* Right: MT940 Merge */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700">
+              <FileStack className="h-3 w-3" />
+              {t('merge.mt940Mode', { defaultValue: 'MT940 Merge' })}
+            </div>
+            {disabledReason && (
+              <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-2 py-1.5 rounded">
+                <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{disabledReason}</span>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={promptSingleDownload}
+                disabled={!canMergeSingle}
+                className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
+                  canMergeSingle
+                    ? 'border-transparent text-white bg-indigo-600 hover:bg-indigo-700'
+                    : 'border-gray-200 text-gray-400 bg-gray-300 cursor-not-allowed'
+                }`}
+                title={singleDisabledReason || t('merge.singleTooltip', { defaultValue: 'Merge all into one consolidated statement (recalculates balances)' })}
+              >
+                <FileText className="h-3 w-3 mr-1" />
+                {t('merge.downloadSingle')}
+              </button>
+              <button
+                onClick={downloadMulti}
+                disabled={!canMergeMulti}
+                className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
+                  canMergeMulti
+                    ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+                title={disabledReason || t('merge.multiTooltip', { defaultValue: 'Download combined MT940 preserving original statement structure' })}
+              >
+                <FileStack className="h-3 w-3 mr-1" />
+                {t('merge.downloadMulti')}
+              </button>
+              <button
+                onClick={() => openPreview('single')}
+                disabled={!canMergeSingle}
+                className={`inline-flex items-center px-2 py-1.5 border text-xs font-medium rounded ${
+                  canMergeSingle
+                    ? 'border-gray-300 text-gray-500 bg-white hover:bg-gray-50'
+                    : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+                title={t('merge.previewSingle')}
+              >
+                <Eye className="h-3 w-3" />
+              </button>
+              <button
+                onClick={() => openPreview('multi')}
+                disabled={!canMergeMulti}
+                className={`inline-flex items-center px-2 py-1.5 border text-xs font-medium rounded ${
+                  canMergeMulti
+                    ? 'border-gray-300 text-gray-500 bg-white hover:bg-gray-50'
+                    : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+                title={t('merge.previewMulti')}
+              >
+                <Eye className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
         </div>
-
-        {exportMode === 'mt940' && disabledReason && (
-          <div className="mb-3 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            {disabledReason}
-          </div>
-        )}
-
-        {/* CSV Mode Buttons */}
-        {exportMode === 'csv' && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={downloadCSV}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-indigo-600 hover:bg-indigo-700"
-              title={t('merge.csvBasicTooltip', { defaultValue: 'Download basic CSV with essential fields' })}
-            >
-              <Download className="h-3 w-3 mr-1" />
-              {t('merge.downloadCsv', { defaultValue: 'Download CSV' })}
-            </button>
-            <button
-              onClick={downloadEnhancedCSV}
-              className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-              title={t('merge.csvEnhancedTooltip', { defaultValue: 'Download enhanced CSV with all 19 fields including fingerprints' })}
-            >
-              <FileDown className="h-3 w-3 mr-1" />
-              {t('merge.downloadEnhancedCsv', { defaultValue: 'Enhanced CSV' })}
-            </button>
-          </div>
-        )}
-
-        {/* MT940 Mode Buttons */}
-        {exportMode === 'mt940' && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => openPreview('multi')}
-              disabled={!canMergeMulti}
-              className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
-                canMergeMulti
-                  ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
-              }`}
-              title={disabledReason || t('merge.multiDesc')}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              {t('merge.previewMulti')}
-            </button>
-            <button
-              onClick={downloadMulti}
-              disabled={!canMergeMulti}
-              className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
-                canMergeMulti
-                  ? 'border-transparent text-white bg-indigo-600 hover:bg-indigo-700'
-                  : 'border-gray-200 text-gray-400 bg-gray-300 cursor-not-allowed'
-              }`}
-              title={disabledReason || t('merge.multiTooltip', { defaultValue: 'Download combined MT940 preserving original statement structure' })}
-            >
-              <FileStack className="h-3 w-3 mr-1" />
-              {t('merge.downloadMulti')}
-            </button>
-            <button
-              onClick={() => openPreview('single')}
-              disabled={!canMergeSingle}
-              className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
-                canMergeSingle
-                  ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
-                  : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
-              }`}
-              title={disabledReason || t('merge.singleDesc')}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              {t('merge.previewSingle')}
-            </button>
-            <button
-              onClick={promptSingleDownload}
-              disabled={!canMergeSingle}
-              className={`inline-flex items-center px-3 py-1.5 border text-xs font-medium rounded ${
-                canMergeSingle
-                  ? 'border-transparent text-white bg-amber-600 hover:bg-amber-700'
-                  : 'border-gray-200 text-gray-400 bg-gray-300 cursor-not-allowed'
-              }`}
-              title={singleDisabledReason || t('merge.singleTooltip', { defaultValue: 'Merge all into one consolidated statement (recalculates balances)' })}
-            >
-              <FileText className="h-3 w-3 mr-1" />
-              {t('merge.downloadSingle')}
-            </button>
-          </div>
-        )}
       </div>
 
       {showPreview && (

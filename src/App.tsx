@@ -196,6 +196,13 @@ const App = observer(() => {
           <div className="mt-8">
             <div className="flex items-center justify-between mb-4">
               <ValidationStatusBadge />
+              <button
+                onClick={() => setShowResetConfirmation(true)}
+                className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <X className="h-4 w-4 mr-1" />
+                {t('reset')}
+              </button>
             </div>
             <ValidationSummary />
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
