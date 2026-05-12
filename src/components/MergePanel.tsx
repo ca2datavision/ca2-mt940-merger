@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight, FileJson } from 'lucide-react';
@@ -30,6 +30,7 @@ export const MergePanel: React.FC = observer(() => {
   const [previewMode, setPreviewMode] = useState<'multi' | 'single'>('multi');
   const [showSingleConfirm, setShowSingleConfirm] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const prevItemCountRef = useRef(0);
 
   const allIssues = useMemo((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [...fileStore.batchIssues];
@@ -70,11 +71,21 @@ export const MergePanel: React.FC = observer(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileStore.files.length]);
 
-  // Auto-select all items only on first load (when nothing selected)
+  // Auto-select all items when files are added; preserve selection when files removed
   useEffect(() => {
-    if (statementItems.length > 0 && selectedIds.size === 0) {
+    const prevCount = prevItemCountRef.current;
+    const currentCount = statementItems.length;
+
+    if (currentCount > prevCount) {
+      // Files added: select all items (including new ones)
       setSelectedIds(new Set(statementItems.map(item => item.id)));
+    } else if (currentCount < prevCount) {
+      // Files removed: keep selection but filter out removed items
+      const validIds = new Set(statementItems.map(item => item.id));
+      setSelectedIds(prev => new Set([...prev].filter(id => validIds.has(id))));
     }
+
+    prevItemCountRef.current = currentCount;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statementItems.length]);
 
