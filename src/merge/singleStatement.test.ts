@@ -72,7 +72,7 @@ describe('mergeSingleStatement', () => {
 
     const merged = mergeSingleStatement([stmt1, stmt2]);
 
-    expect(merged.statementNumber).toBe('001-002');
+    expect(merged.statementNumber).toBe('002');
     expect(merged.transactions).toHaveLength(2);
     expect(merged.openingBalance.amount.equals(new Decimal('1000'))).toBe(true);
     expect(merged.closingBalance.amount.equals(new Decimal('1300'))).toBe(true);
@@ -167,10 +167,10 @@ describe('mergeSingleStatement', () => {
 
     const merged = mergeSingleStatement([stmt1, stmt2]);
 
-    expect(merged.transactionReference).toBe('STMT001-003');
+    expect(merged.transactionReference).toBe('MERGED003');
   });
 
-  it('generates :20: showing full range for multiple statements', () => {
+  it('uses last statement number for merged output', () => {
     const stmt1 = makeStatement({
       id: 'stmt-1',
       statementNumber: '005',
@@ -189,7 +189,27 @@ describe('mergeSingleStatement', () => {
 
     const merged = mergeSingleStatement([stmt3, stmt1, stmt2]);
 
-    expect(merged.transactionReference).toBe('STMT005-010');
+    expect(merged.statementNumber).toBe('010');
+    expect(merged.transactionReference).toBe('MERGED010');
+  });
+
+  it('produces valid :28C: format without hyphens', () => {
+    const stmt1 = makeStatement({
+      id: 'stmt-1',
+      statementNumber: '00091',
+      openingBalance: { date: '2024-01-01', amount: new Decimal('1000'), currency: 'EUR', isCredit: true },
+    });
+    const stmt2 = makeStatement({
+      id: 'stmt-2',
+      statementNumber: '00120',
+      openingBalance: { date: '2024-02-01', amount: new Decimal('1100'), currency: 'EUR', isCredit: true },
+    });
+
+    const merged = mergeSingleStatement([stmt1, stmt2]);
+
+    expect(merged.statementNumber).toBe('00120');
+    expect(merged.statementNumber).toMatch(/^\d+$/);
+    expect(merged.statementNumber).not.toContain('-');
   });
 });
 

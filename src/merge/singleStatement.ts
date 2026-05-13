@@ -96,9 +96,9 @@ export function mergeSingleStatement(statements: Statement[]): MergedStatement {
 
   return {
     accountId: first.accountId,
-    statementNumber: `${first.statementNumber}-${last.statementNumber}`,
+    statementNumber: last.statementNumber,
     sequenceNumber: '1',
-    transactionReference: `STMT${first.statementNumber}-${last.statementNumber}`,
+    transactionReference: `MERGED${last.statementNumber}`,
     openingBalance: { ...first.openingBalance },
     closingBalance: recalculatedClosing,
     transactions: allTransactions,
