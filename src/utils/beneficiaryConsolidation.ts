@@ -277,6 +277,11 @@ export function consolidate86Description(
   const field32 = subfields.find(sf => sf.code === '+32');
   const field33 = subfields.find(sf => sf.code === '+33');
 
+  // Idempotency check: if +32 already equals keyword, transformation was already applied
+  if (field32?.value && normalizeForMatch(field32.value) === normalizeForMatch(options.keyword)) {
+    return description;
+  }
+
   const beneficiaryParts: string[] = [];
   if (field32?.value) beneficiaryParts.push(field32.value);
   if (field33?.value) beneficiaryParts.push(field33.value);

@@ -128,8 +128,8 @@ export const MergePanel: React.FC = observer(() => {
 
   const multiMessageContent = useMemo((): string => {
     if (selectedStatements.length === 0) return '';
-    return writeMT940(selectedStatements);
-  }, [selectedStatements]);
+    return writeMT940(selectedStatements, { consolidationOptions });
+  }, [selectedStatements, consolidationOptions]);
 
   const singleStatementContent = useMemo((): string => {
     if (selectedValidationStatements.length === 0) return '';
@@ -162,8 +162,8 @@ export const MergePanel: React.FC = observer(() => {
         description: t.description,
         supplementaryDetails: t.supplementaryDetails,
       })),
-    }]);
-  }, [selectedValidationStatements]);
+    }], { consolidationOptions });
+  }, [selectedValidationStatements, consolidationOptions]);
 
   const previewContent = previewMode === 'multi' ? multiMessageContent : singleStatementContent;
 

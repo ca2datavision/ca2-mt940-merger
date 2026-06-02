@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import * as mt940 from 'mt940-js';
 import { writeMT940, convertParsedToWritable } from '../utils/mt940Writer';
+import type { ConsolidationOptions } from '../utils/beneficiaryConsolidation';
 
 async function parseBuffer(content: string) {
   const buffer = new TextEncoder().encode(content);
@@ -309,6 +310,258 @@ describe('Export Fidelity Regression Tests', () => {
       expect(output).toContain(':20:STMT002');
       expect(output).toContain(':28C:1/1');
       expect(output).toContain(':28C:2/1');
+    });
+  });
+
+  describe('Beneficiary Consolidation for :86: (NTRF transactions)', () => {
+    const consolidationOptions: ConsolidationOptions = {
+      enabled: true,
+      keyword: 'PLATA ZILIER',
+    };
+
+    it('transforms :86: subfields when NTRF + keyword match', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+20Pl Inst Paymnt+23PLATA ZILIER BRD+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+23PLATA ZILIER BRD POPESCU DIANA GEORGIANA');
+      expect(output).toContain('+32PLATA ZILIER');
+      expect(output).not.toContain('+33GEORGIANA');
+    });
+
+    it('does NOT transform non-NTRF transactions', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NMSC',
+          reference: 'REF001',
+          description: '000+20Payment+23PLATA ZILIER+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+32POPESCU DIANA');
+      expect(output).toContain('+33GEORGIANA');
+    });
+
+    it('does NOT transform NTRF without keyword match', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+20Regular Payment+23Some info+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+32POPESCU DIANA');
+      expect(output).toContain('+33GEORGIANA');
+    });
+
+    it('handles missing +33 subfield gracefully', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+20Pl Inst+23PLATA ZILIER BRD+32POPESCU DIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+23PLATA ZILIER BRD POPESCU DIANA');
+      expect(output).toContain('+32PLATA ZILIER');
+    });
+
+    it('handles missing +23 subfield - no transformation', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+20Pl Inst+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+32POPESCU DIANA');
+      expect(output).toContain('+33GEORGIANA');
+    });
+
+    it('preserves prefix before +NN subfields', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+20Pl Inst Paymnt+23PLATA ZILIER BRD+32POPESCU',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain(':86:000');
+      expect(output).toContain('+20Pl Inst Paymnt');
+    });
+
+    it('does NOT transform when consolidation is disabled', () => {
+      const disabledOptions: ConsolidationOptions = {
+        enabled: false,
+        keyword: 'PLATA ZILIER',
+      };
+
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATA ZILIER BRD+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }], { consolidationOptions: disabledOptions });
+
+      expect(output).toContain('+32POPESCU DIANA');
+      expect(output).toContain('+33GEORGIANA');
+    });
+
+    it('backward compatible - no options means no transformation', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATA ZILIER BRD+32POPESCU DIANA+33GEORGIANA',
+        }],
+      }]);
+
+      expect(output).toContain('+32POPESCU DIANA');
+      expect(output).toContain('+33GEORGIANA');
+    });
+
+    it('handles case-insensitive keyword matching', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23plata zilier lowercase+32POPESCU',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+23plata zilier lowercase POPESCU');
+      expect(output).toContain('+32PLATA ZILIER');
+    });
+
+    it('handles diacritics-agnostic matching (Romanian)', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATĂ ZILIER cu diacritice+32POPESCU',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+32PLATA ZILIER');
+    });
+
+    it('produces idempotent output on re-export', async () => {
+      const input = `:20:REF123
+:25:TESTACCOUNT
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:2605050505D100,00NTRF REF001
+:86:000+20Pl Inst+23PLATA ZILIER BRD+32POPESCU DIANA+33GEORGIANA
+:62F:C260510EUR900,00
+-`;
+      const parsed = await parseBuffer(input);
+      const writable = convertParsedToWritable({ statements: parsed });
+      const output1 = writeMT940(writable, { consolidationOptions });
+
+      const parsed2 = await parseBuffer(output1);
+      const writable2 = convertParsedToWritable({ statements: parsed2 });
+      const output2 = writeMT940(writable2, { consolidationOptions });
+
+      expect(output1).toBe(output2);
     });
   });
 });

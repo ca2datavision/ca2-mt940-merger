@@ -17,6 +17,7 @@ import type {
   MT940Statement as MT940ParsedStatement,
   MT940Transaction as MT940ParsedTransaction
 } from '../types/mt940';
+import { consolidate86Description, type ConsolidationOptions } from './beneficiaryConsolidation';
 
 export interface MT940Transaction {
   entryDate?: string;
@@ -74,6 +75,7 @@ export interface MT940Statement {
 
 export interface MT940WriteOptions {
   referenceNumber?: string;
+  consolidationOptions?: ConsolidationOptions;
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -170,7 +172,18 @@ export function writeMT940(
 
     for (const tx of stmt.transactions || []) {
       lines.push(formatTransactionLine(tx));
-      const infoLine = formatInfoLine(tx);
+
+      let description = tx.description;
+      const consolidationOpts = options.consolidationOptions;
+      if (consolidationOpts?.enabled && consolidationOpts.keyword?.trim()) {
+        description = consolidate86Description(
+          description || '',
+          tx.transactionType || '',
+          consolidationOpts
+        );
+      }
+
+      const infoLine = formatInfoLine({ ...tx, description });
       if (infoLine) {
         lines.push(infoLine);
       }
