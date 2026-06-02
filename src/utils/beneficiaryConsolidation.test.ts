@@ -390,3 +390,44 @@ describe('DEFAULT_CONSOLIDATION_OPTIONS', () => {
     expect(DEFAULT_CONSOLIDATION_OPTIONS.keyword).toBe('PLATA ZILIER');
   });
 });
+
+describe('consolidate86Subfields edge cases', () => {
+  const options = { enabled: true, keyword: 'PLATA ZILIER' };
+
+  it('transforms when +32 equals keyword but +33 still present (appends only +33)', () => {
+    const input = '+23PLATA ZILIER BRD+32PLATA ZILIER+33GEORGIANA';
+    const result = consolidate86Subfields(input, 'NTRF', options);
+    expect(result).toBe('+23PLATA ZILIER BRD GEORGIANA+32PLATA ZILIER');
+  });
+
+  it('skips when fully consolidated (+32=keyword, +33 absent, beneficiary already in +23)', () => {
+    const input = '+23PLATA ZILIER BRD POPESCU ION+32PLATA ZILIER';
+    const result = consolidate86Subfields(input, 'NTRF', options);
+    expect(result).toBe(input);
+  });
+
+  it('handles missing +32 in source by appending +33 to +23', () => {
+    const input = '+23PLATA ZILIER BRD+33GEORGIANA';
+    const result = consolidate86Subfields(input, 'NTRF', options);
+    expect(result).toBe('+23PLATA ZILIER BRD GEORGIANA');
+  });
+
+  it('is idempotent: re-consolidating already-consolidated output produces same result', () => {
+    const original = '+23PLATA ZILIER LUNA MAI+32POPESCU ION+33BUCURESTI';
+    const firstPass = consolidate86Subfields(original, 'NTRF', options);
+    const secondPass = consolidate86Subfields(firstPass, 'NTRF', options);
+    expect(secondPass).toBe(firstPass);
+  });
+
+  it('returns unchanged when fully consolidated (+32=keyword, +33 empty)', () => {
+    const input = '+23PLATA ZILIER BRD+32PLATA ZILIER+33';
+    const result = consolidate86Subfields(input, 'NTRF', options);
+    expect(result).toBe(input);
+  });
+
+  it('handles prefix with partial consolidation (+33 only appended)', () => {
+    const input = '000+23PLATA ZILIER BRD+32PLATA ZILIER+33ADDR';
+    const result = consolidate86Description(input, 'NTRF', options);
+    expect(result).toBe('000+23PLATA ZILIER BRD ADDR+32PLATA ZILIER');
+  });
+});
