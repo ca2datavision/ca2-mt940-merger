@@ -146,6 +146,16 @@ describe('getTransactionTypeName', () => {
     const result = getTransactionTypeName('NMSC', 'en');
     expect(result).toBe('Non-SWIFT Miscellaneous');
   });
+
+  it('returns type name without prefix for unknown prefix', () => {
+    const result = getTransactionTypeName('ZTRF', 'en');
+    expect(result).toBe('Transfer');
+  });
+
+  it('returns RO type name without prefix for unknown prefix', () => {
+    const result = getTransactionTypeName('XTRF', 'ro');
+    expect(result).toBe('Transfer');
+  });
 });
 
 describe('getDCIndicatorName', () => {
