@@ -275,6 +275,287 @@ describe('FileStore', () => {
       const rows = fileStore.convertToCSV();
       expect(rows.length).toBe(1);
     });
+
+    it('applies beneficiary consolidation when enabled', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                transactions: [
+                  {
+                    entryDate: '2024-01-15',
+                    amount: '100.00',
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToCSV({ enabled: true, keyword: 'PLATA ZILIER' });
+      expect(rows.length).toBe(1);
+      expect(rows[0].numeContrapartida).toBe('PLATA ZILIER');
+      expect(rows[0].detaliiTranzactie).toBe('PLATA ZILIER LUNA MAI, POPESCU ION');
+    });
+
+    it('does not apply consolidation when disabled', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                transactions: [
+                  {
+                    entryDate: '2024-01-15',
+                    amount: '100.00',
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToCSV({ enabled: false, keyword: 'PLATA ZILIER' });
+      expect(rows[0].numeContrapartida).toBe('POPESCU ION');
+      expect(rows[0].detaliiTranzactie).toBe('PLATA ZILIER LUNA MAI');
+    });
+
+    it('does not apply consolidation when keyword not in details', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                transactions: [
+                  {
+                    entryDate: '2024-01-15',
+                    amount: '100.00',
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'Regular payment',
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToCSV({ enabled: true, keyword: 'PLATA ZILIER' });
+      expect(rows[0].numeContrapartida).toBe('POPESCU ION');
+      expect(rows[0].detaliiTranzactie).toBe('Regular payment');
+    });
+
+    it('backward compatible - no options means no transformation', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                transactions: [
+                  {
+                    entryDate: '2024-01-15',
+                    amount: '100.00',
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToCSV();
+      expect(rows[0].numeContrapartida).toBe('POPESCU ION');
+      expect(rows[0].detaliiTranzactie).toBe('PLATA ZILIER LUNA MAI');
+    });
+  });
+
+  describe('convertToEnhancedCSV', () => {
+    it('returns empty array when no files', () => {
+      expect(fileStore.convertToEnhancedCSV()).toEqual([]);
+    });
+
+    it('converts transactions to enhanced CSV rows', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                statementNumber: '001',
+                sequenceNumber: '1',
+                openingBalance: { amount: 1000 },
+                closingBalance: { amount: 900 },
+                transactions: [
+                  {
+                    valueDate: '2024-01-14',
+                    entryDate: '2024-01-15',
+                    amount: 100,
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'Test payment',
+                    isCredit: false,
+                    customerReference: 'REF001',
+                    bankReference: 'BANK001',
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToEnhancedCSV();
+      expect(rows.length).toBe(1);
+      expect(rows[0].account_id).toBe('ACC123');
+      expect(rows[0].supplementary_details).toBe('POPESCU ION');
+      expect(rows[0].narrative).toBe('Test payment');
+    });
+
+    it('applies beneficiary consolidation when enabled', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                statementNumber: '001',
+                openingBalance: { amount: 1000 },
+                closingBalance: { amount: 900 },
+                transactions: [
+                  {
+                    valueDate: '2024-01-14',
+                    entryDate: '2024-01-15',
+                    amount: 100,
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    isCredit: false,
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToEnhancedCSV({ enabled: true, keyword: 'PLATA ZILIER' });
+      expect(rows.length).toBe(1);
+      expect(rows[0].supplementary_details).toBe('PLATA ZILIER');
+      expect(rows[0].narrative).toBe('PLATA ZILIER LUNA MAI, POPESCU ION');
+    });
+
+    it('does not apply consolidation when disabled', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                statementNumber: '001',
+                openingBalance: { amount: 1000 },
+                closingBalance: { amount: 900 },
+                transactions: [
+                  {
+                    valueDate: '2024-01-14',
+                    entryDate: '2024-01-15',
+                    amount: 100,
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    isCredit: false,
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToEnhancedCSV({ enabled: false, keyword: 'PLATA ZILIER' });
+      expect(rows[0].supplementary_details).toBe('POPESCU ION');
+      expect(rows[0].narrative).toBe('PLATA ZILIER LUNA MAI');
+    });
+
+    it('backward compatible - no options means no transformation', () => {
+      runInAction(() => {
+        fileStore.files.push({
+          id: '1',
+          name: 'test.mt940',
+          contentHash: 'x',
+          parsed: {
+            statements: [
+              {
+                accountId: 'ACC123',
+                statementNumber: '001',
+                openingBalance: { amount: 1000 },
+                closingBalance: { amount: 900 },
+                transactions: [
+                  {
+                    valueDate: '2024-01-14',
+                    entryDate: '2024-01-15',
+                    amount: 100,
+                    currency: 'EUR',
+                    transactionType: 'NMSC',
+                    description: 'PLATA ZILIER LUNA MAI',
+                    isCredit: false,
+                    extraDetails: { name: 'POPESCU ION' },
+                  },
+                ],
+              },
+            ],
+          },
+        });
+      });
+
+      const rows = fileStore.convertToEnhancedCSV();
+      expect(rows[0].supplementary_details).toBe('POPESCU ION');
+      expect(rows[0].narrative).toBe('PLATA ZILIER LUNA MAI');
+    });
   });
 
   describe('clearZipStatus', () => {

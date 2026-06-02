@@ -6,6 +6,7 @@ import type { ValidationIssue, Statement } from '../types/validation';
 import type { EnhancedCSVRow } from '../utils/csv';
 import type { FileInfo, StatementInfo, TransactionInfo } from '../validation/duplicates';
 import type { MT940ParsedData } from '../types/mt940';
+import { consolidateCSVRow, type ConsolidationOptions } from '../utils/beneficiaryConsolidation';
 
 export interface MT940File {
   id: string;
@@ -304,7 +305,7 @@ class FileStore {
     return '';
   }
 
-  convertToCSV(): CSVRow[] {
+  convertToCSV(consolidationOptions?: ConsolidationOptions): CSVRow[] {
     const rows: CSVRow[] = [];
     const seenTransactions: Set<string> = new Set();
 
@@ -315,25 +316,34 @@ class FileStore {
         for (const transaction of statement.transactions) {
           // Create unique transaction ID from its properties
           const transactionId = `${statement.accountId}-${transaction.entryDate}-${transaction.amount}-${transaction.transactionType}-${transaction.description}`;
-          
+
           // Skip if we've seen this transaction before
           if (seenTransactions.has(transactionId)) {
             continue;
           }
-          
+
           seenTransactions.add(transactionId);
-          
+
+          let beneficiary = transaction.extraDetails?.name || '';
+          let details = transaction.description || '';
+
+          if (consolidationOptions?.enabled && consolidationOptions.keyword?.trim()) {
+            const consolidated = consolidateCSVRow(beneficiary, details, consolidationOptions);
+            beneficiary = consolidated.beneficiary;
+            details = consolidated.details;
+          }
+
           rows.push({
             numarCont: statement.accountId || '',
             dataProcesarii: this.formatDate(transaction.entryDate),
             suma: transaction.amount || '',
             valuta: transaction.currency || '',
             tipTranzactie: transaction.transactionType || '',
-            numeContrapartida: transaction.extraDetails?.name || '',
+            numeContrapartida: beneficiary,
             adresaContrapartida: transaction.extraDetails?.address || '',
             contContrapartida: transaction.extraDetails?.account || '',
             bancaContrapartida: transaction.extraDetails?.bankName || '',
-            detaliiTranzactie: transaction.description || '',
+            detaliiTranzactie: details,
             soldIntermediar: transaction.balance?.value || '',
             cuiContrapartida: transaction.extraDetails?.fiscalCode || ''
           });
@@ -344,7 +354,7 @@ class FileStore {
     return rows;
   }
 
-  convertToEnhancedCSV(): EnhancedCSVRow[] {
+  convertToEnhancedCSV(consolidationOptions?: ConsolidationOptions): EnhancedCSVRow[] {
     const rows: EnhancedCSVRow[] = [];
     const seenTransactions: Set<string> = new Set();
 
@@ -362,6 +372,15 @@ class FileStore {
             ? transaction.amount.toString()
             : `-${transaction.amount.toString()}`;
 
+          let beneficiary = transaction.extraDetails?.name || '';
+          let details = transaction.description || '';
+
+          if (consolidationOptions?.enabled && consolidationOptions.keyword?.trim()) {
+            const consolidated = consolidateCSVRow(beneficiary, details, consolidationOptions);
+            beneficiary = consolidated.beneficiary;
+            details = consolidated.details;
+          }
+
           rows.push({
             source_file: file.name,
             zip_path: '',
@@ -377,8 +396,8 @@ class FileStore {
             transaction_type: transaction.transactionType || '',
             customer_reference: transaction.customerReference || '',
             bank_reference: transaction.bankReference || '',
-            supplementary_details: transaction.extraDetails?.name || '',
-            narrative: transaction.description || '',
+            supplementary_details: beneficiary,
+            narrative: details,
             opening_balance: statement.openingBalance?.amount?.toString() || '',
             closing_balance: statement.closingBalance?.amount?.toString() || '',
             fingerprint,
