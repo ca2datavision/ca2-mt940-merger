@@ -176,8 +176,17 @@ export function consolidate86Subfields(
   const field32 = subfields.find(sf => sf.code === '+32');
   const field33 = subfields.find(sf => sf.code === '+33');
 
+  const isField32Keyword = field32?.value && normalizeForMatch(field32.value) === normalizeForMatch(options.keyword);
+
+  // Idempotency: if +32=keyword and +33 doesn't exist or is empty, return unchanged
+  if (isField32Keyword && (!field33 || !field33.value)) {
+    return description;
+  }
+
+  // Build beneficiary parts to append to +23
   const beneficiaryParts: string[] = [];
-  if (field32?.value) beneficiaryParts.push(field32.value);
+  // Only include +32 if it's NOT already the keyword
+  if (field32?.value && !isField32Keyword) beneficiaryParts.push(field32.value);
   if (field33?.value) beneficiaryParts.push(field33.value);
 
   if (beneficiaryParts.length === 0) {
@@ -277,13 +286,17 @@ export function consolidate86Description(
   const field32 = subfields.find(sf => sf.code === '+32');
   const field33 = subfields.find(sf => sf.code === '+33');
 
-  // Idempotency check: if +32 already equals keyword, transformation was already applied
-  if (field32?.value && normalizeForMatch(field32.value) === normalizeForMatch(options.keyword)) {
+  const isField32Keyword = field32?.value && normalizeForMatch(field32.value) === normalizeForMatch(options.keyword);
+
+  // Idempotency: if +32=keyword and +33 doesn't exist or is empty, return unchanged
+  if (isField32Keyword && (!field33 || !field33.value)) {
     return description;
   }
 
+  // Build beneficiary parts to append to +23
   const beneficiaryParts: string[] = [];
-  if (field32?.value) beneficiaryParts.push(field32.value);
+  // Only include +32 if it's NOT already the keyword
+  if (field32?.value && !isField32Keyword) beneficiaryParts.push(field32.value);
   if (field33?.value) beneficiaryParts.push(field33.value);
 
   if (beneficiaryParts.length === 0) {

@@ -563,5 +563,113 @@ describe('Export Fidelity Regression Tests', () => {
 
       expect(output1).toBe(output2);
     });
+
+    it('transforms when +32=keyword but +33 still present (appends only +33)', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATA ZILIER BRD+32PLATA ZILIER+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      // Only +33 should be folded into +23 (not +32 since it equals keyword)
+      expect(output).toContain('+23PLATA ZILIER BRD GEORGIANA');
+      expect(output).toContain('+32PLATA ZILIER');
+      expect(output).not.toContain('+33GEORGIANA');
+    });
+
+    it('skips fully consolidated records (+32=keyword, no +33, beneficiary in +23)', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATA ZILIER BRD POPESCU ION+32PLATA ZILIER',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+23PLATA ZILIER BRD POPESCU ION');
+      expect(output).toContain('+32PLATA ZILIER');
+      expect(output).not.toContain('PLATA ZILIER PLATA ZILIER');
+    });
+
+    it('handles missing +32 in source (only +33 present)', () => {
+      const output = writeMT940([{
+        accountId: 'TEST',
+        statementNumber: '1',
+        sequenceNumber: '1',
+        openingBalance: { date: '2024-01-01', amount: '1000', currency: 'EUR', isCredit: true },
+        closingBalance: { date: '2024-01-31', amount: '900', currency: 'EUR', isCredit: true },
+        transactions: [{
+          valueDate: '2024-01-15',
+          entryDate: '2024-01-15',
+          amount: '100',
+          isCredit: false,
+          transactionType: 'NTRF',
+          reference: 'REF001',
+          description: '000+23PLATA ZILIER BRD+33GEORGIANA',
+        }],
+      }], { consolidationOptions });
+
+      expect(output).toContain('+23PLATA ZILIER BRD GEORGIANA');
+      expect(output).not.toContain('+33');
+    });
+
+    it('re-export of fully consolidated record is idempotent', async () => {
+      const alreadyConsolidated = `:20:REF123
+:25:TESTACCOUNT
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:2605050505D100,00NTRF REF001
+:86:000+23PLATA ZILIER BRD POPESCU ION+32PLATA ZILIER
+:62F:C260510EUR900,00
+-`;
+      const parsed = await parseBuffer(alreadyConsolidated);
+      const writable = convertParsedToWritable({ statements: parsed });
+      const output1 = writeMT940(writable, { consolidationOptions });
+
+      const parsed2 = await parseBuffer(output1);
+      const writable2 = convertParsedToWritable({ statements: parsed2 });
+      const output2 = writeMT940(writable2, { consolidationOptions });
+
+      expect(output1).toBe(output2);
+      expect(output1).not.toContain('PLATA ZILIER PLATA ZILIER');
+    });
+
+    it('handles partially consolidated source from ZIP archive (appends only +33)', async () => {
+      const partiallyConsolidated = `:20:REF456
+:25:TESTACCOUNT
+:28C:1/1
+:60F:C260501EUR1000,00
+:61:2605050505D100,00NTRF REF001
+:86:000+23PLATA ZILIER BRD+32PLATA ZILIER+33GEORGIANA
+:62F:C260510EUR900,00
+-`;
+      const parsed = await parseBuffer(partiallyConsolidated);
+      const writable = convertParsedToWritable({ statements: parsed });
+      const output = writeMT940(writable, { consolidationOptions });
+
+      expect(output).toContain('+23PLATA ZILIER BRD GEORGIANA');
+      expect(output).toContain('+32PLATA ZILIER');
+      expect(output).not.toContain('+33GEORGIANA');
+    });
   });
 });
