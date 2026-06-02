@@ -102,7 +102,12 @@ const resources = {
         disabledNoSelection: 'Select statements to enable merge',
         singleConfirmTitle: 'Confirm Single Statement Merge',
         singleConfirmMessage: 'Merging into a single statement will recalculate the closing balance. This may differ from the original statement numbers. Only use this if your system requires a single consolidated statement.',
-        confirmDownload: 'Download'
+        confirmDownload: 'Download',
+        advancedOptions: 'Advanced Options',
+        consolidateBeneficiaries: 'Consolidate beneficiaries by keyword',
+        consolidationKeyword: 'Keyword',
+        consolidationKeywordPlaceholder: 'e.g., PLATA ZILIER',
+        consolidationHelp: 'Transactions containing this keyword will be grouped under a single beneficiary name'
       },
       validationCodes: {
         BALANCE_DISCONTINUITY: 'Balance discontinuity between statements',
@@ -228,7 +233,12 @@ const resources = {
         disabledNoSelection: 'Selectați extrase pentru a activa îmbinarea',
         singleConfirmTitle: 'Confirmă Îmbinarea în Extras Unic',
         singleConfirmMessage: 'Îmbinarea într-un singur extras va recalcula soldul final. Acesta poate diferi de numerele extraselor originale. Folosiți această opțiune doar dacă sistemul dvs. necesită un singur extras consolidat.',
-        confirmDownload: 'Descarcă'
+        confirmDownload: 'Descarcă',
+        advancedOptions: 'Opțiuni Avansate',
+        consolidateBeneficiaries: 'Consolidează beneficiarii după cuvânt cheie',
+        consolidationKeyword: 'Cuvânt cheie',
+        consolidationKeywordPlaceholder: 'ex: PLATA ZILIER',
+        consolidationHelp: 'Tranzacțiile care conțin acest cuvânt vor fi grupate sub un singur beneficiar'
       },
       validationCodes: {
         BALANCE_DISCONTINUITY: 'Discontinuitate de sold între extrase',

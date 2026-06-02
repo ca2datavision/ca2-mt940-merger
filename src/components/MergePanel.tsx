@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
-import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight, FileJson } from 'lucide-react';
+import { Download, Eye, X, CheckSquare, Square, AlertCircle, FileStack, FileText, Table, FileDown, ChevronDown, ChevronRight, FileJson, Users } from 'lucide-react';
+import { DEFAULT_CONSOLIDATION_OPTIONS, type ConsolidationOptions } from '../utils/beneficiaryConsolidation';
 import { fileStore } from '../stores/FileStore';
 import { writeMT940, convertParsedToWritable } from '../utils/mt940Writer';
 import { buildValidationResult, validationResultToJSON, generateValidationReport, downloadFile } from '../utils/exportValidation';
@@ -30,7 +31,14 @@ export const MergePanel: React.FC = observer(() => {
   const [previewMode, setPreviewMode] = useState<'multi' | 'single'>('multi');
   const [showSingleConfirm, setShowSingleConfirm] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [consolidationEnabled, setConsolidationEnabled] = useState(DEFAULT_CONSOLIDATION_OPTIONS.enabled);
+  const [consolidationKeyword, setConsolidationKeyword] = useState(DEFAULT_CONSOLIDATION_OPTIONS.keyword);
   const prevItemCountRef = useRef(0);
+
+  const consolidationOptions: ConsolidationOptions = useMemo(() => ({
+    enabled: consolidationEnabled,
+    keyword: consolidationKeyword.trim(),
+  }), [consolidationEnabled, consolidationKeyword]);
 
   const allIssues = useMemo((): ValidationIssue[] => {
     const issues: ValidationIssue[] = [...fileStore.batchIssues];
@@ -217,7 +225,7 @@ export const MergePanel: React.FC = observer(() => {
   };
 
   const downloadCSV = useCallback(() => {
-    const rows = fileStore.convertToCSV();
+    const rows = fileStore.convertToCSV(consolidationOptions);
     const { min, max } = fileStore.getTransactionDateRange();
     const accountId = fileStore.getFirstAccountId();
     const accountSuffix = accountId ? `_${accountId}` : '';
@@ -240,10 +248,10 @@ export const MergePanel: React.FC = observer(() => {
     link.download = `${filename}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
-  }, []);
+  }, [consolidationOptions]);
 
   const downloadEnhancedCSV = useCallback(() => {
-    const rows = fileStore.convertToEnhancedCSV();
+    const rows = fileStore.convertToEnhancedCSV(consolidationOptions);
     const { min, max } = fileStore.getTransactionDateRange();
     const accountId = fileStore.getFirstAccountId();
     const accountSuffix = accountId ? `_${accountId}` : '';
@@ -258,7 +266,7 @@ export const MergePanel: React.FC = observer(() => {
     link.download = `${filename}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
-  }, []);
+  }, [consolidationOptions]);
 
   const downloadValidationJSON = useCallback(() => {
     const result = buildValidationResult(fileStore.files, fileStore.batchIssues);
@@ -438,6 +446,7 @@ export const MergePanel: React.FC = observer(() => {
             {t('merge.advancedOptions', { defaultValue: 'Advanced Options' })}
           </button>
           {showAdvanced && (
+            <>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 onClick={() => openPreview('single')}
@@ -482,6 +491,35 @@ export const MergePanel: React.FC = observer(() => {
                 {t('downloads.report', { defaultValue: 'Report' })}
               </button>
             </div>
+
+            {/* Beneficiary Consolidation Options */}
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={consolidationEnabled}
+                  onChange={(e) => setConsolidationEnabled(e.target.checked)}
+                  className="h-3.5 w-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <Users className="h-3 w-3 text-gray-400" />
+                {t('merge.consolidateBeneficiaries', { defaultValue: 'Consolidate beneficiaries by keyword' })}
+              </label>
+              {consolidationEnabled && (
+                <div className="mt-2 ml-5">
+                  <input
+                    type="text"
+                    value={consolidationKeyword}
+                    onChange={(e) => setConsolidationKeyword(e.target.value)}
+                    placeholder={t('merge.consolidationKeywordPlaceholder', { defaultValue: 'e.g., PLATA ZILIER' })}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    {t('merge.consolidationHelp', { defaultValue: 'Transactions containing this keyword will be grouped under a single beneficiary name' })}
+                  </p>
+                </div>
+              )}
+            </div>
+            </>
           )}
         </div>
       </div>
