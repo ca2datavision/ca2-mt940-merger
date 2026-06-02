@@ -35,6 +35,7 @@ const resources = {
         noTransactions: 'No transactions',
         description: 'Description',
         unknown: 'Unknown',
+        prefix: 'Prefix',
         tooltip: {
           valueDate: 'MT940 :61: - Date when funds become available',
           entryDate: 'MT940 :61: - Date transaction was posted to account',
@@ -185,6 +186,7 @@ const resources = {
         noTransactions: 'Fără tranzacții',
         description: 'Descriere',
         unknown: 'Necunoscut',
+        prefix: 'Prefix',
         tooltip: {
           valueDate: 'MT940 :61: - Data la care fondurile devin disponibile',
           entryDate: 'MT940 :61: - Data înregistrării tranzacției în cont',

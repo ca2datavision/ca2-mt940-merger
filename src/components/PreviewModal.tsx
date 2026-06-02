@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
-import { parseSubfields } from '../utils/beneficiaryConsolidation';
+import { parseDescriptionWithPrefix } from '../utils/beneficiaryConsolidation';
 import { getSubfieldDefinition, getTransactionTypeName, type Locale } from '../utils/mt940Tags';
 import type { MT940Statement, MT940Transaction } from '../types/mt940';
 
@@ -14,7 +14,7 @@ interface SubfieldBreakdownProps {
 }
 
 const SubfieldBreakdown: React.FC<SubfieldBreakdownProps> = ({ description, locale, t }) => {
-  const subfields = parseSubfields(description);
+  const { prefix, subfields } = parseDescriptionWithPrefix(description);
 
   if (subfields.length === 0) {
     return <div className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{description}</div>;
@@ -22,6 +22,13 @@ const SubfieldBreakdown: React.FC<SubfieldBreakdownProps> = ({ description, loca
 
   return (
     <div className="space-y-1">
+      {prefix && (
+        <div className="flex text-xs">
+          <span className="text-gray-400 font-mono w-12 flex-shrink-0">{t('previewModal.prefix')}</span>
+          <span className="text-gray-500 w-36 flex-shrink-0"></span>
+          <span className="text-gray-600 font-mono">{prefix}</span>
+        </div>
+      )}
       {subfields.map((sf, idx) => {
         const def = getSubfieldDefinition(sf.code, locale);
         return (
