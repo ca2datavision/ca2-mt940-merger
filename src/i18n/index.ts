@@ -23,7 +23,26 @@ const resources = {
       previewModal: {
         statement: 'Statement Information',
         account: 'Account',
-        currency: 'Currency'
+        currency: 'Currency',
+        openingBalance: 'Opening Balance',
+        closingBalance: 'Closing Balance',
+        valueDate: 'Value Date',
+        entryDate: 'Entry Date',
+        amount: 'Amount',
+        type: 'Type',
+        customerRef: 'Customer Ref',
+        bankRef: 'Bank Ref',
+        noTransactions: 'No transactions',
+        description: 'Description',
+        unknown: 'Unknown',
+        tooltip: {
+          valueDate: 'MT940 :61: - Date when funds become available',
+          entryDate: 'MT940 :61: - Date transaction was posted to account',
+          amount: 'MT940 :61: - Transaction amount with D/C indicator',
+          type: 'MT940 :61: - SWIFT transaction type code (e.g., NTRF, NMSC)',
+          customerRef: 'MT940 :61: - Customer reference number',
+          bankRef: 'MT940 :61: - Bank reference number'
+        }
       },
       footer: {
         opensource: 'Free & Open Source Software',
@@ -154,7 +173,26 @@ const resources = {
       previewModal: {
         statement: 'Informații Extras',
         account: 'Cont',
-        currency: 'Valută'
+        currency: 'Valută',
+        openingBalance: 'Sold Inițial',
+        closingBalance: 'Sold Final',
+        valueDate: 'Data Valutei',
+        entryDate: 'Data Înregistrării',
+        amount: 'Sumă',
+        type: 'Tip',
+        customerRef: 'Ref. Client',
+        bankRef: 'Ref. Bancă',
+        noTransactions: 'Fără tranzacții',
+        description: 'Descriere',
+        unknown: 'Necunoscut',
+        tooltip: {
+          valueDate: 'MT940 :61: - Data la care fondurile devin disponibile',
+          entryDate: 'MT940 :61: - Data înregistrării tranzacției în cont',
+          amount: 'MT940 :61: - Suma tranzacției cu indicator D/C',
+          type: 'MT940 :61: - Cod tip tranzacție SWIFT (ex: NTRF, NMSC)',
+          customerRef: 'MT940 :61: - Număr referință client',
+          bankRef: 'MT940 :61: - Număr referință bancă'
+        }
       },
       footer: {
         opensource: 'Software Gratuit și Open Source',

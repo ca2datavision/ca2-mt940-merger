@@ -1,15 +1,54 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react-lite';
+import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronRight } from 'lucide-react';
 import { fileStore } from '../stores/FileStore';
+import { parseSubfields } from '../utils/beneficiaryConsolidation';
+import { getSubfieldDefinition, getTransactionTypeName, type Locale } from '../utils/mt940Tags';
 import type { MT940Statement, MT940Transaction } from '../types/mt940';
+
+interface SubfieldBreakdownProps {
+  description: string;
+  locale: Locale;
+  t: (key: string) => string;
+}
+
+const SubfieldBreakdown: React.FC<SubfieldBreakdownProps> = ({ description, locale, t }) => {
+  const subfields = parseSubfields(description);
+
+  if (subfields.length === 0) {
+    return <div className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{description}</div>;
+  }
+
+  return (
+    <div className="space-y-1">
+      {subfields.map((sf, idx) => {
+        const def = getSubfieldDefinition(sf.code, locale);
+        return (
+          <div key={idx} className="flex text-xs">
+            <span
+              className="text-blue-600 font-mono w-12 flex-shrink-0"
+              title={def?.description}
+            >
+              {sf.code}
+            </span>
+            <span className="text-gray-500 w-36 flex-shrink-0">{def?.name || t('previewModal.unknown')}:</span>
+            <span className="text-gray-800 break-all">{sf.value}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 interface TransactionTableProps {
   transactions: MT940Transaction[];
   formatDate: (dateStr: string | undefined) => string;
+  t: (key: string) => string;
+  locale: Locale;
 }
 
-const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, formatDate }) => {
+const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, formatDate, t, locale }) => {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const toggleRow = (index: number) => {
@@ -25,7 +64,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
   };
 
   if (!transactions || transactions.length === 0) {
-    return <p className="text-gray-500 text-sm">No transactions</p>;
+    return <p className="text-gray-500 text-sm">{t('previewModal.noTransactions')}</p>;
   }
 
   return (
@@ -34,12 +73,12 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
         <thead className="bg-gray-50">
           <tr>
             <th className="w-8"></th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Value Date</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Entry Date</th>
-            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer Ref</th>
-            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bank Ref</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.valueDate')}>{t('previewModal.valueDate')}</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.entryDate')}>{t('previewModal.entryDate')}</th>
+            <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.amount')}>{t('previewModal.amount')}</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.type')}>{t('previewModal.type')}</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.customerRef')}>{t('previewModal.customerRef')}</th>
+            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-help" title={t('previewModal.tooltip.bankRef')}>{t('previewModal.bankRef')}</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -59,7 +98,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
                   <td className={`px-3 py-2 whitespace-nowrap text-right font-mono ${txn.isCredit ? 'text-green-600' : 'text-red-600'}`}>
                     {txn.isCredit ? '+' : '-'}{txn.amount?.toString() || '0.00'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap">{txn.transactionType || '-'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap" title={txn.transactionType ? getTransactionTypeName(txn.transactionType, locale) : undefined}>{txn.transactionType || '-'}</td>
                   <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.customerReference || '-'}</td>
                   <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.bankReference || '-'}</td>
                 </tr>
@@ -67,7 +106,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
                   <tr className="bg-gray-50">
                     <td></td>
                     <td colSpan={6} className="px-3 py-2">
-                      <div className="text-xs text-gray-600 whitespace-pre-wrap font-mono">{txn.description}</div>
+                      <SubfieldBreakdown description={txn.description} locale={locale} t={t} />
                     </td>
                   </tr>
                 )}
@@ -81,6 +120,8 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
 };
 
 export const PreviewModal = observer(() => {
+  const { t, i18n } = useTranslation();
+  const locale = (i18n.language?.substring(0, 2) === 'ro' ? 'ro' : 'en') as Locale;
   const file = fileStore.selectedFile;
 
   const formatDate = (dateStr: string | undefined) => {
@@ -112,25 +153,25 @@ export const PreviewModal = observer(() => {
           {file.parsed.statements.map((statement: MT940Statement, statementIndex: number) => (
             <div key={statementIndex} className="mb-8">
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <h3 className="font-semibold text-gray-700 mb-2">Statement Information</h3>
+                <h3 className="font-semibold text-gray-700 mb-2">{t('previewModal.statement')}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Account</p>
+                    <p className="text-sm text-gray-600">{t('previewModal.account')}</p>
                     <p className="font-medium">{statement.accountId || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Currency</p>
+                    <p className="text-sm text-gray-600">{t('previewModal.currency')}</p>
                     <p className="font-medium">{statement.openingBalance?.currency || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Opening Balance</p>
+                    <p className="text-sm text-gray-600">{t('previewModal.openingBalance')}</p>
                     <p className={`font-medium font-mono ${statement.openingBalance?.isCredit ? 'text-green-600' : 'text-red-600'}`}>
                       {statement.openingBalance ? `${statement.openingBalance.isCredit ? '+' : '-'}${statement.openingBalance.value}` : '-'}
                     </p>
                     <p className="text-xs text-gray-500">{formatDate(statement.openingBalance?.date)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Closing Balance</p>
+                    <p className="text-sm text-gray-600">{t('previewModal.closingBalance')}</p>
                     <p className={`font-medium font-mono ${statement.closingBalance?.isCredit ? 'text-green-600' : 'text-red-600'}`}>
                       {statement.closingBalance ? `${statement.closingBalance.isCredit ? '+' : '-'}${statement.closingBalance.value}` : '-'}
                     </p>
@@ -139,7 +180,7 @@ export const PreviewModal = observer(() => {
                 </div>
               </div>
 
-              <TransactionTable transactions={statement.transactions} formatDate={formatDate} />
+              <TransactionTable transactions={statement.transactions} formatDate={formatDate} t={t} locale={locale} />
             </div>
           ))}
         </div>
