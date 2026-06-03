@@ -51,6 +51,9 @@ export const FileValidationCard = observer(({ fileId }: { fileId: string }) => {
   const errorCount = issues.filter(i => i.severity === 'error').length;
   const warningCount = issues.filter(i => i.severity === 'warning').length;
   const statementCount = file.parsed?.statements.length || 0;
+  const transactionCount = file.parsed?.statements.reduce(
+    (sum, stmt) => sum + (stmt.transactions?.length || 0), 0
+  ) || 0;
 
   return (
     <div className="flex items-center space-x-2">
@@ -72,6 +75,8 @@ export const FileValidationCard = observer(({ fileId }: { fileId: string }) => {
       )}
       <span className="text-xs text-gray-400">•</span>
       <span className="text-xs text-gray-500">{statementCount} {t('validation.statements').toLowerCase()}</span>
+      <span className="text-xs text-gray-400">•</span>
+      <span className="text-xs text-gray-500">{transactionCount} {t('validation.transactions').toLowerCase()}</span>
     </div>
   );
 });

@@ -9,6 +9,7 @@ import { buildValidationResult, validationResultToJSON, generateValidationReport
 import { analyzeMergeEligibility } from '../validation/merge';
 import { mergeSingleStatement as mergeSingleStatementModule } from '../merge/singleStatement';
 import { toCSV, ENHANCED_HEADERS } from '../utils/csv';
+import { sanitizeFilename } from '../utils/filename';
 import type { MT940Statement } from '../utils/mt940Writer';
 import type { ValidationIssue, Statement } from '../types/validation';
 
@@ -228,7 +229,7 @@ export const MergePanel: React.FC = observer(() => {
     const rows = fileStore.convertToCSV(consolidationOptions);
     const { min, max } = fileStore.getTransactionDateRange();
     const accountId = fileStore.getFirstAccountId();
-    const accountSuffix = accountId ? `_${accountId}` : '';
+    const accountSuffix = accountId ? `_${sanitizeFilename(accountId)}` : '';
     const filename = min === max ?
       `transactions${accountSuffix}_${min}` :
       `transactions${accountSuffix}_${min}_to_${max}`;
@@ -254,7 +255,7 @@ export const MergePanel: React.FC = observer(() => {
     const rows = fileStore.convertToEnhancedCSV(consolidationOptions);
     const { min, max } = fileStore.getTransactionDateRange();
     const accountId = fileStore.getFirstAccountId();
-    const accountSuffix = accountId ? `_${accountId}` : '';
+    const accountSuffix = accountId ? `_${sanitizeFilename(accountId)}` : '';
     const filename = min === max ?
       `transactions_enhanced${accountSuffix}_${min}` :
       `transactions_enhanced${accountSuffix}_${min}_to_${max}`;

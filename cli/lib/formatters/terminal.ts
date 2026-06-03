@@ -6,6 +6,7 @@
 import pc from 'picocolors';
 import type { ParsedLine, DecodedTag, DecodedTransaction, DecodedBalance } from '../decoder.js';
 import type { Formatter, FormatterOptions, DocumentSummary } from './types.js';
+import { stripAnsi } from '../ansi.js';
 
 interface ColorFunctions {
   cyan: (s: string) => string;
@@ -59,12 +60,12 @@ function formatDecodedFields(decoded: DecodedTag, c: ColorFunctions): string[] {
       const typeDesc = `${tx.transactionType.prefix}${tx.transactionType.code} = ${tx.transactionType.prefixMeaning} ${tx.transactionType.name}`;
       lines.push(`├── Type: ${c.magenta(typeDesc)}`);
     }
-    lines.push(`├── Customer Ref: ${tx.customerReference || 'N/A'}`);
+    lines.push(`├── Customer Ref: ${stripAnsi(tx.customerReference || '') || 'N/A'}`);
     if (tx.bankReference) {
-      lines.push(`├── Bank Ref: ${tx.bankReference}`);
+      lines.push(`├── Bank Ref: ${stripAnsi(tx.bankReference)}`);
     }
     if (tx.supplementary) {
-      lines.push(`├── Supplementary: ${c.dim(tx.supplementary)}`);
+      lines.push(`├── Supplementary: ${c.dim(stripAnsi(tx.supplementary))}`);
     }
   } else if (['60F', '60M', '62F', '62M', '64', '65'].includes(decoded.tag)) {
     const bal = fields as unknown as DecodedBalance;
@@ -72,33 +73,33 @@ function formatDecodedFields(decoded: DecodedTag, c: ColorFunctions): string[] {
     const dirColor = bal.isDebit ? c.red : c.green;
     lines.push(`├── Date: ${c.cyan(bal.dateFormatted || 'N/A')}`);
     lines.push(`├── Direction: ${dirColor(direction)}`);
-    lines.push(`├── Currency: ${bal.currency || 'N/A'}`);
-    lines.push(`├── Amount: ${c.bold(bal.amount || 'N/A')}`);
+    lines.push(`├── Currency: ${stripAnsi(bal.currency || '') || 'N/A'}`);
+    lines.push(`├── Amount: ${c.bold(stripAnsi(bal.amount || '') || 'N/A')}`);
   } else if (decoded.tag === '25') {
-    lines.push(`├── Account: ${c.cyan(String(fields.accountId || 'N/A'))}`);
+    lines.push(`├── Account: ${c.cyan(stripAnsi(String(fields.accountId || '')) || 'N/A')}`);
     if (fields.bic) {
-      lines.push(`├── BIC: ${fields.bic}`);
+      lines.push(`├── BIC: ${stripAnsi(String(fields.bic))}`);
     }
   } else if (decoded.tag === '28C') {
-    lines.push(`├── Statement Number: ${fields.statementNumber || 'N/A'}`);
+    lines.push(`├── Statement Number: ${stripAnsi(String(fields.statementNumber || '')) || 'N/A'}`);
     if (fields.sequenceNumber) {
-      lines.push(`├── Sequence: ${fields.sequenceNumber}`);
+      lines.push(`├── Sequence: ${stripAnsi(String(fields.sequenceNumber))}`);
     }
   } else if (decoded.tag === '86') {
     if (fields.hasSubfields && fields.subfields) {
       const subfields = fields.subfields as Record<string, string>;
       for (const [code, value] of Object.entries(subfields)) {
-        lines.push(`├── ${c.dim(`[${code}]`)} ${value}`);
+        lines.push(`├── ${c.dim(`[${stripAnsi(code)}]`)} ${stripAnsi(value)}`);
       }
     } else {
-      const narrative = String(fields.rawNarrative || '');
+      const narrative = stripAnsi(String(fields.rawNarrative || ''));
       const truncated = narrative.length > 80 ? narrative.slice(0, 80) + '...' : narrative;
       lines.push(`├── Narrative: ${c.dim(truncated)}`);
     }
   } else {
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined && typeof value !== 'object') {
-        lines.push(`├── ${key}: ${value}`);
+        lines.push(`├── ${key}: ${stripAnsi(String(value))}`);
       }
     }
   }
@@ -128,9 +129,9 @@ function formatLine(line: ParsedLine, c: ColorFunctions, options: FormatterOptio
 
   if (!line.decoded) {
     if (line.isContinuation) {
-      output.push(`${c.dim(lineNum)}${c.dim('(continuation)')} ${line.raw}`);
+      output.push(`${c.dim(lineNum)}${c.dim('(continuation)')} ${stripAnsi(line.raw)}`);
     } else if (line.raw.trim()) {
-      output.push(`${c.dim(lineNum)}${line.raw}`);
+      output.push(`${c.dim(lineNum)}${stripAnsi(line.raw)}`);
     }
     return output;
   }
@@ -139,7 +140,7 @@ function formatLine(line: ParsedLine, c: ColorFunctions, options: FormatterOptio
   const tagDisplay = c.cyan(`:${decoded.tag}:`);
 
   if (options.showRawLines !== false) {
-    output.push(`${c.bold(lineNum)}${line.raw}`);
+    output.push(`${c.bold(lineNum)}${stripAnsi(line.raw)}`);
   }
 
   output.push(`├── Tag: ${tagDisplay} ${c.bold(decoded.tagName)}`);
