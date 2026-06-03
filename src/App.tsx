@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { ValidationIssue } from './types/validation';
 import { FileText, Upload, X, Eye, Linkedin, Twitter, Facebook, Copy, Check, AlertTriangle, Github, Mail } from 'lucide-react';
 import { fileStore } from './stores/FileStore';
+import { sanitizeErrorMessage } from './utils/errorSanitizer';
 import { PreviewModal } from './components/PreviewModal';
 import { CSVPreview } from './components/CSVPreview';
 import { LanguageSelector } from './components/LanguageSelector';
@@ -71,7 +72,7 @@ const App = observer(() => {
     try {
       await processFiles(fileArray);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to process file');
+      alert(sanitizeErrorMessage(error, 'Failed to process file'));
     }
     event.target.value = '';
   }, [processFiles]);
@@ -93,7 +94,7 @@ const App = observer(() => {
     try {
       await processFiles(fileArray);
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to process file');
+      alert(sanitizeErrorMessage(error, 'Failed to process file'));
     }
   }, [processFiles]);
 
@@ -108,7 +109,7 @@ const App = observer(() => {
       await fileStore.addFile(pendingZipFile);
       fileStore.validateBatch();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+      alert(sanitizeErrorMessage(error, 'Failed to process ZIP'));
     }
     setPendingZipFile(null);
   }, [pendingZipFile]);
@@ -121,7 +122,7 @@ const App = observer(() => {
       await fileStore.addFile(pendingZipFile);
       fileStore.validateBatch();
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to process ZIP');
+      alert(sanitizeErrorMessage(error, 'Failed to process ZIP'));
     }
     setPendingZipFile(null);
   }, [pendingZipFile]);

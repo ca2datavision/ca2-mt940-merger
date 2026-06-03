@@ -3,6 +3,16 @@ import { validateFileContent } from '../validation';
 import { decodeText } from '../utils/encoding';
 import { validateTextFile } from '../utils/safety';
 
+function sanitizeErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message
+      .replace(/[A-Za-z]:\\[^\s:]+/g, '[path]')
+      .replace(/\/(?:home|usr|var|tmp|etc|data|opt)[^\s:]+/gi, '[path]')
+      .replace(/\/[^\s:]*\/[^\s:]*\.[a-z]{1,4}/gi, '[path]');
+  }
+  return fallback;
+}
+
 export interface ParseRequest {
   type: 'parse';
   buffer: ArrayBuffer;
@@ -63,7 +73,7 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     self.postMessage({
       type: 'error',
       fileId,
-      message: error instanceof Error ? error.message : String(error),
+      message: sanitizeErrorMessage(error, 'Failed to parse file'),
     } as ParseError);
   }
 };
