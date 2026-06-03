@@ -113,22 +113,18 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, forma
                   <tr className="bg-gray-50">
                     <td></td>
                     <td colSpan={6} className="px-3 py-2">
-                      {!hasDescription ? (
-                        <div className="text-xs text-gray-500 italic">{t('previewModal.noDescription')}</div>
-                      ) : (
-                        <div className="space-y-3">
-                          <div>
-                            <div className="text-xs font-medium text-gray-700 mb-1">{t('previewModal.rawDescription')}</div>
-                            <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-white p-2 rounded border max-h-48 overflow-y-auto">{txn.description}</pre>
-                          </div>
-                          {parseDescriptionWithPrefix(txn.description).subfields.length > 0 && (
-                            <div>
-                              <div className="text-xs font-medium text-gray-700 mb-1">{t('previewModal.explained')}</div>
-                              <SubfieldBreakdown description={txn.description} locale={locale} t={t} />
-                            </div>
-                          )}
+                      <div className="space-y-3">
+                        <div>
+                          <div className="text-xs font-medium text-gray-700 mb-1">{t('previewModal.rawDescription')}</div>
+                          <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-white p-2 rounded border max-h-48 overflow-y-auto">{txn.description}</pre>
                         </div>
-                      )}
+                        {parseDescriptionWithPrefix(txn.description).subfields.length > 0 && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-700 mb-1">{t('previewModal.explained')}</div>
+                            <SubfieldBreakdown description={txn.description} locale={locale} t={t} />
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}

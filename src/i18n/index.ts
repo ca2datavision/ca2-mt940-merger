@@ -38,7 +38,6 @@ const resources = {
         prefix: 'Prefix',
         rawDescription: 'Raw :86: Description',
         explained: 'Explained',
-        noDescription: 'No description available',
         tooltip: {
           valueDate: 'MT940 :61: - Date when funds become available',
           entryDate: 'MT940 :61: - Date transaction was posted to account',
@@ -192,7 +191,6 @@ const resources = {
         prefix: 'Prefix',
         rawDescription: 'Descriere Brută :86:',
         explained: 'Explicat',
-        noDescription: 'Fără descriere disponibilă',
         tooltip: {
           valueDate: 'MT940 :61: - Data la care fondurile devin disponibile',
           entryDate: 'MT940 :61: - Data înregistrării tranzacției în cont',
